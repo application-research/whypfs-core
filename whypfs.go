@@ -5,10 +5,12 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	ulimit "github.com/filecoin-project/go-ulimit"
 	"github.com/ipfs/go-bitswap"
 	bsnet "github.com/ipfs/go-bitswap/network"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
+	"github.com/ipfs/go-cidutil"
 	"github.com/ipfs/go-datastore"
 	flatfs "github.com/ipfs/go-ds-flatfs"
 	levelds "github.com/ipfs/go-ds-leveldb"
@@ -65,6 +67,7 @@ func init() {
 type NewNodeParams struct {
 	// Context is the context to use for the node.
 	Ctx        context.Context
+	Repo       string
 	Datastore  datastore.Batching
 	Blockstore blockstore.Blockstore
 	Dht        *dht.IpfsDHT
@@ -129,7 +132,6 @@ func (cfg *Config) setDefaults() {
 	// optimal settings
 	cfg.Offline = false
 	cfg.ReprovideInterval = defaultReprovideInterval
-	cfg.Blockstore = "leveldb"
 	cfg.NoBlockstoreCache = false
 	cfg.NoAnnounceContent = false
 	cfg.NoLimiter = false
@@ -139,21 +141,41 @@ func (cfg *Config) setDefaults() {
 	cfg.ConnectionManagerConfig.LowWater = 900
 	cfg.DatastoreDir.Directory = "datastore"
 	cfg.DatastoreDir.Options = levelds.Options{}
-	cfg.Blockstore = ":flatfs:blocks"
+	cfg.Blockstore = ":flatfs:.whypfs/blocks"
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
-	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/9091"}
-	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/9091"}
+	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 }
 
 //	NewNode creates a new WhyPFS node with the given configuration.
 func NewNode(
 	nodeParams NewNodeParams) (*Node, error) {
-
+	var err error
 	if nodeParams.Config == nil {
 		nodeParams.Config = &Config{}
 		nodeParams.Config.setDefaults()
 	}
 
+	if nodeParams.Repo == "" {
+		nodeParams.Repo = ".whypfs"
+	}
+
+	ch, nlim, err := ulimit.ManageFdLimit(50000)
+	if err != nil {
+		return nil, err
+	}
+
+	if ch {
+		logger.Infof("changed file descriptor limit to %d", nlim)
+	}
+
+	if err = ensureRepoExists(nodeParams.Repo); err != nil {
+		return nil, err
+	}
+
+	nodeParams.Config.Blockstore = ":flatfs:" + filepath.Join(nodeParams.Repo, "blocks")
+
+	// create the node
 	node := &Node{}
 	node.Config = nodeParams.Config
 	node.Ctx = nodeParams.Ctx
@@ -161,15 +183,55 @@ func NewNode(
 	node.Dht = nodeParams.Dht
 
 	// set up defaults here.
-	node.setupPeer()         // peer Host
-	node.setupDatastore()    // data store
-	node.setupBlockstore()   // Blockstore and service
-	node.setupBlockservice() // block service
-	node.setupDAGService()   // DAG service
-	node.setupReprovider()   // Reprovider
+	node.setupPeer() // peer Host
+
+	// if they don't have a datastore, let's set it up for them.
+	err = node.setupDatastore()
+	if err != nil {
+		return nil, err
+	}
+
+	err = node.setupBlockstore() // Blockstore and service
+	if err != nil {
+		return nil, err
+	}
+	err = node.setupBlockservice() // block service
+	if err != nil {
+		return nil, err
+	}
+	err = node.setupDAGService() // DAG service
+	if err != nil {
+		node.Blockservice.Close()
+		return nil, err
+	}
+
+	err = node.setupReprovider() // Reprovider
+	if err != nil {
+		node.Blockservice.Close()
+		return nil, err
+	}
 
 	//	return the node
+	go node.deferClose()
 	return node, nil
+}
+func ensureRepoExists(dir string) error {
+	st, err := os.Stat(dir)
+	if err == nil {
+		if st.IsDir() {
+			return nil
+		}
+		return fmt.Errorf("repo dir was not a directory")
+	}
+
+	if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //	Helper function to bootstrap peers
@@ -211,11 +273,6 @@ func (p *Node) BootstrapPeers(peers []peer.AddrInfo) {
 	}
 }
 
-func (p *Node) setupDAGService() error {
-	p.DAGService = merkledag.NewDAGService(p.Blockservice)
-	return nil
-}
-
 // Creating a new function called Session that takes in a context and returns a NodeGetter.
 func (p *Node) Session(ctx context.Context) ipld.NodeGetter {
 	ng := merkledag.NewSession(ctx, p.DAGService)
@@ -235,6 +292,61 @@ type AddParams struct {
 	Shard     bool
 	NoCopy    bool
 	HashFun   string
+}
+
+// Adding the directory of the pin to the path.
+func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, error) {
+	//	We need to get the file info
+	//	create the root directory
+	dirNode := ufsio.NewDirectory(p.DAGService)
+	prefix, err := merkledag.PrefixForCidVersion(1)
+	prefix.MhType = uint64(multihash.SHA2_256)
+
+	dirNode.SetCidBuilder(cidutil.InlineBuilder{
+		Builder: prefix,
+	})
+
+	dirents, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	//progCb := func(int64) {}
+
+	// TODO: support directories
+	for _, d := range dirents {
+		name := filepath.Join(path, d.Name())
+		if d.IsDir() {
+
+			_, err := func() (interface{}, error) {
+				return nil, nil
+			}() //addDirectory(ctx, fstore, dserv, name)
+			if err != nil {
+				return nil, err
+			}
+			if err := dirNode.AddChild(ctx, name, nil); err != nil {
+				return nil, err
+			}
+
+			//fmt.Printf("imported directory: %s | %s \n", d.Name(), nil)
+		} else {
+			_, _, err := func() (interface{}, interface{}, error) {
+				return nil, nil, nil
+			}() //filestoreAdd(fstore, name, progCb)
+			if err != nil {
+				return nil, err
+			}
+
+			if err := dirNode.AddChild(ctx, name, nil); err != nil {
+				return nil, err
+			}
+		}
+	}
+	node, err := dirNode.GetNode()
+	stats, err := node.Stat()
+
+	fmt.Println("links", stats.NumLinks)
+	return node.(*merkledag.ProtoNode), nil
 }
 
 // AddFile chunks and adds content to the DAGService from a reader. The content
@@ -307,6 +419,7 @@ func (p *Node) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
 	return p.BlockStore().Has(ctx, c)
 }
 
+// Setting up the node.
 func (p *Node) setupPeer() error {
 
 	//	 libp2p peer key
@@ -386,11 +499,11 @@ func (p *Node) setupPeer() error {
 	return nil
 }
 
+// Setting up the datastore, blockstore, blockservice, and reprovider.
 func (p *Node) setupDatastore() error {
 
 	//	if it's nil, then let's set it up for them.
 	if p.Datastore == nil {
-
 		ds, err := levelds.NewDatastore(p.Config.DatastoreDir.Directory, &p.Config.DatastoreDir.Options)
 		if err != nil {
 			return err
@@ -398,7 +511,7 @@ func (p *Node) setupDatastore() error {
 		p.Datastore = ds // data store.
 
 		dhtopts := fullrt.DHTOption(
-			dht.Datastore(p.Datastore),
+			dht.Datastore(ds),
 			dht.BootstrapPeers(DefaultBootstrapPeers()...),
 			dht.BucketSize(20),
 		)
@@ -409,18 +522,27 @@ func (p *Node) setupDatastore() error {
 		}
 		p.FullRt = frt // full routing table
 
-		//	no ipfs Dht, let's set it up for them.
-		if p.Dht == nil {
-			ipfsdht, err := dht.New(p.Ctx, p.Host, dht.Datastore(p.Datastore))
-			if err != nil {
-				return xerrors.Errorf("constructing Dht: %w", err)
-			}
-			p.Dht = ipfsdht // ipfs Dht
+	}
+
+	//	no ipfs Dht, let's set it up for them.
+	if p.Dht == nil {
+		ipfsdht, err := dht.New(p.Ctx, p.Host, dht.Datastore(p.Datastore))
+		if err != nil {
+			return xerrors.Errorf("constructing Dht: %w", err)
 		}
+		p.Dht = ipfsdht // ipfs Dht
 	}
 
 	return nil
 }
+
+// Setting up the DAG service.
+func (p *Node) setupDAGService() error {
+	p.DAGService = merkledag.NewDAGService(p.Blockservice)
+	return nil
+}
+
+// Setting up the blockstore.
 func (p *Node) setupBlockstore() error {
 	mbs, storedir, err := loadBlockstore(p.Config.Blockstore, p.Config.NoBlockstoreCache)
 	if err != nil {
@@ -432,6 +554,7 @@ func (p *Node) setupBlockstore() error {
 	return nil
 }
 
+// Setting up the Bitswap network and the Bitswap service.
 func (p *Node) setupBlockservice() error {
 
 	//	Bitswap network
@@ -460,6 +583,7 @@ func (p *Node) setupBlockservice() error {
 	return nil
 }
 
+// Setting up the Reprovider.
 func (p *Node) setupReprovider() error {
 	if p.Config.Offline || p.Config.ReprovideInterval < 0 {
 		p.Reprovider = provider.NewOfflineProvider()
@@ -503,6 +627,8 @@ func (dmw *deleteManyWrap) DeleteMany(ctx context.Context, cids []cid.Cid) error
 	return nil
 }
 
+// It takes a blockstore configuration string, and returns a blockstore.Blockstore, a string representing the directory of
+// the blockstore, and an error
 func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, error) {
 	bstore, dir, err := constructBlockstore(bscfg)
 	if err != nil {
@@ -535,6 +661,7 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 type DeleteManyBlockstore interface {
 	blockstore.Blockstore
 	DeleteMany(context.Context, []cid.Cid) error
+	// It parses the blockstore configuration string, and then it creates a blockstore based on the configuration
 }
 
 func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
@@ -618,6 +745,7 @@ func parseBsCfg(bscfg string) (string, []string, string, error) {
 	return t, params, bscfg[end+1:], nil
 }
 
+// Closing the Reprovider and Blockservice when the context is done.
 func (p *Node) deferClose() {
 	<-p.Ctx.Done()
 	p.Reprovider.Close()

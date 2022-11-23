@@ -15,7 +15,7 @@ Using the default will give the most optimal configuration based on whyPFS. It'l
 boostrap nodes.
 
 ```shell
-go get github.com/alvin-reyes/whypfs-core
+go get github.com/application-research/whypfs-core
 ```
 
 ## Setup a node
@@ -34,5 +34,7 @@ content, err := p1.GetFile(context.Background(), node.Cid())
 
 ## Provides
 - An ipld.DAGService.
-- An AddFile method to add content from a reader.
-- A GetFile method to get a file from IPFS.
+- AddPinFile method
+- AddPinDirectory method (WIP)
+- A GetFile method to get from any peers
+- Custom bootstrap nodes

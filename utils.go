@@ -22,11 +22,10 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
-// DefaultBootstrapPeers returns the default bootstrap peers (for use
-// with NewLibp2pHost.
+// A list of peer addresses that are used to bootstrap the network
 var defaultTestBootstrapPeers []multiaddr.Multiaddr
 
-// It returns a list of peer addresses that are used to bootstrap the network
+// Creating a list of multiaddresses that are used to bootstrap the network.
 func DefaultBootstrapPeers() []peer.AddrInfo {
 
 	for _, s := range []string{
