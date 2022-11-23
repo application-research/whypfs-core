@@ -14,6 +14,10 @@ node initialization setup based on the Why's https://github.com/whyrusleeping/wh
 Using the default will give the most optimal configuration based on whyPFS. It'll also use the default
 boostrap nodes.
 
+```shell
+go get github.com/alvin-reyes/whypfs-core
+```
+
 ## Setup a node
 ```
 p1, err := p1, err1 := NewNode(NewNodeParams{Ctx: context.Background()})	
