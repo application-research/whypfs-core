@@ -423,6 +423,7 @@ func (p *Node) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
 func (p *Node) setupPeer() error {
 
 	//	 libp2p peer key
+	var cryptoPrivateKey crypto.PrivKey
 	data, err := ioutil.ReadFile(p.Config.Libp2pKeyFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -442,14 +443,13 @@ func (p *Node) setupPeer() error {
 		if err := ioutil.WriteFile(p.Config.Libp2pKeyFile, data, 0600); err != nil {
 			return err
 		}
+		cryptoPrivateKey = k
+	} else {
+		cryptoPrivateKey, err = crypto.UnmarshalPrivateKey(data)
 
-		return nil
-	}
-
-	//	Private key of the peer
-	peerPrivateKey, err := crypto.UnmarshalPrivateKey(data)
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	var rcm network.ResourceManager
@@ -471,7 +471,7 @@ func (p *Node) setupPeer() error {
 		libp2p.ListenAddrStrings(p.Config.ListenAddrs...),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cmgr),
-		libp2p.Identity(peerPrivateKey),
+		libp2p.Identity(cryptoPrivateKey),
 		libp2p.BandwidthReporter(bwc),
 		libp2p.DefaultTransports,
 		libp2p.ResourceManager(rcm),
@@ -511,7 +511,7 @@ func (p *Node) setupDatastore() error {
 		p.Datastore = ds // data store.
 
 		dhtopts := fullrt.DHTOption(
-			dht.Datastore(ds),
+			dht.Datastore(p.Datastore),
 			dht.BootstrapPeers(DefaultBootstrapPeers()...),
 			dht.BucketSize(20),
 		)
@@ -590,7 +590,7 @@ func (p *Node) setupReprovider() error {
 		return nil
 	}
 
-	queue, err := queue.NewQueue(p.Ctx, "repro", p.Datastore)
+	queue, err := queue.NewQueue(p.Ctx, "provq", p.Datastore)
 	if err != nil {
 		return err
 	}
