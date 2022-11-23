@@ -1,4 +1,8 @@
 # WhyPFS Core
+
+![go build](https://github.com/application-research/whypfs-core/actions/workflows/go.yml/badge.svg)
+![code ql](https://github.com/application-research/whypfs-core/actions/workflows/codeql.yml/badge.svg)
+
 A lightweight importable library to run a WhyPFS node.
 
 Easiest way to setup an WhyPFS / Estuary core node that peers with any nodes within the IPFS network. This core library decouples the
