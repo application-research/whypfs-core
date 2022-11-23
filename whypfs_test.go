@@ -136,14 +136,16 @@ func TestSetupMultipleNodes(t *testing.T) {
 	}
 
 	p1, err1 := NewNode(NewNodeParams{
-		Ctx:    context.Background(),
-		Config: cfg,
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+		Config:    cfg,
 	}) // nil Datastore and Dht means we use the default
 	if err1 != nil {
 		t.Fatal(err1)
 	}
 	p2, err2 := NewNode(NewNodeParams{
-		Ctx: context.Background(),
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
 	}) // nil data	store and Dht means we use the default
 	if err2 != nil {
 		t.Fatal(err2)
