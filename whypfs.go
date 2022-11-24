@@ -1,6 +1,7 @@
 package whypfs
 
 import (
+	"bytes"
 	"context"
 	crand "crypto/rand"
 	"errors"
@@ -44,6 +45,7 @@ import (
 	"golang.org/x/xerrors"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -292,120 +294,6 @@ type AddParams struct {
 	Shard     bool
 	NoCopy    bool
 	HashFun   string
-}
-
-// Adding the directory of the pin to the path.
-func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, error) {
-	//	We need to get the file info
-	//	create the root directory
-	dirNode := ufsio.NewDirectory(p.DAGService)
-	prefix, err := merkledag.PrefixForCidVersion(1)
-	prefix.MhType = uint64(multihash.SHA2_256)
-
-	dirNode.SetCidBuilder(cidutil.InlineBuilder{
-		Builder: prefix,
-	})
-
-	dirents, err := ioutil.ReadDir(path)
-	if err != nil {
-		return nil, err
-	}
-
-	//progCb := func(int64) {}
-
-	// TODO: support directories
-	for _, d := range dirents {
-		name := filepath.Join(path, d.Name())
-		if d.IsDir() {
-
-			_, err := func() (interface{}, error) {
-				return nil, nil
-			}() //addDirectory(ctx, fstore, dserv, name)
-			if err != nil {
-				return nil, err
-			}
-			if err := dirNode.AddChild(ctx, name, nil); err != nil {
-				return nil, err
-			}
-
-			//fmt.Printf("imported directory: %s | %s \n", d.Name(), nil)
-		} else {
-			_, _, err := func() (interface{}, interface{}, error) {
-				return nil, nil, nil
-			}() //filestoreAdd(fstore, name, progCb)
-			if err != nil {
-				return nil, err
-			}
-
-			if err := dirNode.AddChild(ctx, name, nil); err != nil {
-				return nil, err
-			}
-		}
-	}
-	node, err := dirNode.GetNode()
-	stats, err := node.Stat()
-
-	fmt.Println("links", stats.NumLinks)
-	return node.(*merkledag.ProtoNode), nil
-}
-
-// AddFile chunks and adds content to the DAGService from a reader. The content
-// is stored as a UnixFS DAG (default for IPFS). It returns the root
-// ipld.Node.
-func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (ipld.Node, error) {
-
-	bserv := blockservice.New(p.Blockstore, nil)
-	dserv := merkledag.NewDAGService(bserv)
-
-	if params == nil {
-		params = &AddParams{}
-	}
-	if params.HashFun == "" {
-		params.HashFun = "sha2-256"
-	}
-
-	prefix, err := merkledag.PrefixForCidVersion(1)
-	if err != nil {
-		return nil, fmt.Errorf("bad CID Version: %s", err)
-	}
-
-	prefix.MhType = uint64(multihash.SHA2_256)
-	prefix.MhLength = -1
-
-	dbp := helpers.DagBuilderParams{
-		Dagserv:    dserv,
-		RawLeaves:  params.RawLeaves,
-		Maxlinks:   helpers.DefaultLinksPerBlock,
-		NoCopy:     params.NoCopy,
-		CidBuilder: &prefix,
-	}
-
-	spl := chunker.NewSizeSplitter(r, 1024*1024)
-	dbh, err := dbp.New(spl)
-	if err != nil {
-		return nil, err
-	}
-
-	var n ipld.Node
-	switch params.Layout {
-	case "trickle":
-		n, err = trickle.Layout(dbh)
-	case "balanced", "":
-		n, err = balanced.Layout(dbh)
-	default:
-		return nil, errors.New("invalid Layout")
-	}
-	return n, err
-}
-
-// GetFile returns a reader to a file as identified by its root CID. The file
-// must have been added as a UnixFS DAG (default for IPFS).
-func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, error) {
-	n, err := p.Get(ctx, c)
-	if err != nil {
-		return nil, err
-	}
-	return ufsio.NewDagReader(ctx, n, p)
 }
 
 // BlockStore offers access to the Blockstore underlying the Peer's DAGService.
@@ -750,4 +638,100 @@ func (p *Node) deferClose() {
 	<-p.Ctx.Done()
 	p.Reprovider.Close()
 	p.Blockservice.Close()
+}
+
+// AddFile chunks and adds content to the DAGService from a reader. The content
+// is stored as a UnixFS DAG (default for IPFS). It returns the root
+// ipld.Node.
+func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (ipld.Node, error) {
+
+	bserv := blockservice.New(p.Blockstore, nil)
+	dserv := merkledag.NewDAGService(bserv)
+
+	if params == nil {
+		params = &AddParams{}
+	}
+	if params.HashFun == "" {
+		params.HashFun = "sha2-256"
+	}
+
+	prefix, err := merkledag.PrefixForCidVersion(1)
+	if err != nil {
+		return nil, fmt.Errorf("bad CID Version: %s", err)
+	}
+
+	prefix.MhType = uint64(multihash.SHA2_256)
+	prefix.MhLength = -1
+
+	dbp := helpers.DagBuilderParams{
+		Dagserv:    dserv,
+		RawLeaves:  params.RawLeaves,
+		Maxlinks:   helpers.DefaultLinksPerBlock,
+		NoCopy:     params.NoCopy,
+		CidBuilder: &prefix,
+	}
+
+	spl := chunker.NewSizeSplitter(r, 1024*1024)
+	dbh, err := dbp.New(spl)
+	if err != nil {
+		return nil, err
+	}
+
+	var n ipld.Node
+	switch params.Layout {
+	case "trickle":
+		n, err = trickle.Layout(dbh)
+	case "balanced", "":
+		n, err = balanced.Layout(dbh)
+	default:
+		return nil, errors.New("invalid Layout")
+	}
+	return n, err
+}
+
+// GetFile returns a reader to a file as identified by its root CID. The file
+// must have been added as a UnixFS DAG (default for IPFS).
+func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, error) {
+	n, err := p.Get(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return ufsio.NewDagReader(ctx, n, p)
+}
+
+// Adding the directory of the pin to the path.
+func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, error) {
+
+	dirNode := ufsio.NewDirectory(p.DAGService)
+	prefix, err := merkledag.PrefixForCidVersion(1)
+	prefix.MhType = uint64(multihash.SHA2_256)
+
+	dirNode.SetCidBuilder(cidutil.InlineBuilder{
+		Builder: prefix,
+	})
+
+	err = filepath.Walk(path,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				dirGetNode, _ := dirNode.GetNode()
+				dirNode.AddChild(ctx, info.Name(), dirGetNode)
+			} else {
+				b, _ := os.ReadFile(path)
+				fileNode, err := p.AddPinFile(ctx, bytes.NewReader(b), nil)
+				dirNode.AddChild(ctx, info.Name(), fileNode)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+	if err != nil {
+		log.Println(err)
+	}
+	node, err := dirNode.GetNode()
+	return node, nil
 }

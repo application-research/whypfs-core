@@ -4,12 +4,11 @@ package whypfs
 import (
 	"bytes"
 	"context"
-	"github.com/ipfs/go-cid"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multihash"
-	"github.com/smartystreets/assertions"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"path/filepath"
 	"testing"
@@ -96,8 +95,8 @@ func TestDAG(t *testing.T) {
 // It creates two nodes, connects them, and returns them
 func TestSetupMultiplePeeredNodes(t *testing.T) {
 	p1, p2 := setupNodes(t)
-	assertions.ShouldNotBeNil(p1)
-	assertions.ShouldNotBeNil(p2)
+	assert.NotEmpty(t, p1)
+	assert.NotEmpty(t, p2)
 }
 
 // It creates a node, and then checks that the node is not nil.
@@ -108,7 +107,7 @@ func TestSetupSingleNode(t *testing.T) {
 	if err1 != nil {
 		t.Fatal(err1)
 	}
-	assertions.ShouldNotBeNil(p1)
+	assert.NotEmpty(t, p1)
 }
 
 // It creates two nodes, adds a file to the first node, and then checks that the file is present in the second node
@@ -158,8 +157,8 @@ func TestSetupMultipleNodes(t *testing.T) {
 		t.Fatal(err)
 	}
 	n.Cid()
-	assertions.ShouldNotBeNil(p1)
-	assertions.ShouldNotBeNil(p2)
+	assert.NotEmpty(t, p1)
+	assert.NotEmpty(t, p2)
 }
 
 func TestAddPinFile(t *testing.T) {
@@ -175,7 +174,7 @@ func TestAddPinFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("uploaded", node.Cid())
-	assertions.ShouldEqual("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4", node.Cid().String())
+	assert.Equal(t, "bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4", node.Cid().String())
 }
 
 func TestGetFile(t *testing.T) {
@@ -183,13 +182,36 @@ func TestGetFile(t *testing.T) {
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
+	node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded", node.Cid())
 
-	cid, err := cid.Decode("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4")
+	//cid, err := cid.Decode("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4")
 
-	rsc, err := p1.GetFile(context.Background(), cid)
+	rsc, err := p1.GetFile(context.Background(), node.Cid())
 	if err != nil {
 		t.Fatal(err)
 	}
 	content2, err := io.ReadAll(rsc)
 	t.Log("retrieved node: ", string(content2))
+	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
+}
+
+func TestAddPinDirectory(t *testing.T) {
+	p1, err1 := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded", node.Cid())
+	assert.NotEmpty(t, node)
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", node.Cid().String())
 }
