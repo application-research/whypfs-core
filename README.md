@@ -36,9 +36,16 @@ node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsreb
 content, err := p1.GetFile(context.Background(), node.Cid())
 ```
 
+## Add/Pin Directory and Get the ipld.Node of the directory
+```
+node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
+mainDirNode, err := p1.GetDirectory(context.Background(), node)
+```
+
 ## Provides
 - An ipld.DAGService.
-- AddPinFile method
-- AddPinDirectory method (WIP)
-- A GetFile method to get from any peers
+- AddPinFile method to add a file to a node
+- AddPinDirectory function to add a directory to a node
+- GetFile function to get a file using a CID
+- GetDirectory function to retrieve an entire directory from a ipld.Node
 - Custom bootstrap nodes
