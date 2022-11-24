@@ -699,6 +699,15 @@ func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, er
 	return ufsio.NewDagReader(ctx, n, p)
 }
 
+// Getting the directory from the node.
+func (p *Node) GetDirectory(ctx context.Context, c ipld.Node) (ufsio.Directory, error) {
+	directory, err := ufsio.NewDirectoryFromNode(p.DAGService, c)
+	if err != nil {
+		return nil, err
+	}
+	return directory, nil
+}
+
 // Adding the directory of the pin to the path.
 func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, error) {
 

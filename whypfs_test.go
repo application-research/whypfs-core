@@ -177,7 +177,72 @@ func TestAddPinFile(t *testing.T) {
 	assert.Equal(t, "bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4", node.Cid().String())
 }
 
+func TestAddPinFileAndGetItFromAnotherNode(t *testing.T) {
+	p1, err1 := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+	pinfo1 := peer.AddrInfo{
+		ID:    p1.Host.ID(),
+		Addrs: p1.Host.Addrs(),
+	}
+	p2, err1 := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	pinfo2 := peer.AddrInfo{
+		ID:    p2.Host.ID(),
+		Addrs: p2.Host.Addrs(),
+	}
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+	p1.BootstrapPeers([]peer.AddrInfo{pinfo2})
+	p2.BootstrapPeers([]peer.AddrInfo{pinfo1})
+
+	node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded", node.Cid())
+	assert.Equal(t, "bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4", node.Cid().String())
+
+	// now get the file from the other node
+	node2, err := p2.GetFile(context.Background(), node.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	content2, err := io.ReadAll(node2)
+	t.Log("retrieved node: ", string(content2))
+	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
+}
+
 func TestGetFile(t *testing.T) {
+	p1, err := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded", node.Cid())
+
+	//cid, err := cid.Decode("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4")
+
+	rsc, err := p1.GetFile(context.Background(), node.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	content2, err := io.ReadAll(rsc)
+	t.Log("retrieved node: ", string(content2))
+	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
+}
+
+func TestGetDirectory(t *testing.T) {
 	p1, err := NewNode(NewNodeParams{
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
@@ -211,7 +276,67 @@ func TestAddPinDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log("uploaded", node.Cid())
+	t.Log("uploaded root node", node.Cid())
 	assert.NotEmpty(t, node)
 	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", node.Cid().String())
+	rsc, err := p1.GetDirectory(context.Background(), node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrieveNode, err := rsc.GetNode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("retrieved root node", retrieveNode.Cid())
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
+}
+
+func TestAddPinDirectoryAndGetFromAnotherNode(t *testing.T) {
+	p1, err1 := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+	pinfo1 := peer.AddrInfo{
+		ID:    p1.Host.ID(),
+		Addrs: p1.Host.Addrs(),
+	}
+	p2, err1 := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	pinfo2 := peer.AddrInfo{
+		ID:    p2.Host.ID(),
+		Addrs: p2.Host.Addrs(),
+	}
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+	p1.BootstrapPeers([]peer.AddrInfo{pinfo2})
+	p2.BootstrapPeers([]peer.AddrInfo{pinfo1})
+
+	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded root node", node.Cid())
+	assert.NotEmpty(t, node)
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", node.Cid().String())
+	rsc, err := p2.GetDirectory(context.Background(), node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrieveNode, err := rsc.GetNode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("retrieved root node", retrieveNode.Cid())
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
+
 }
