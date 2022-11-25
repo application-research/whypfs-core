@@ -699,6 +699,24 @@ func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, er
 	return ufsio.NewDagReader(ctx, n, p)
 }
 
+// Getting the directory with the cid.
+func (p *Node) GetDirectoryWithCid(ctx context.Context, c cid.Cid) (ufsio.Directory, error) {
+
+	//links, _ :=
+	//nodes := ipld.GetNodes(ctx, p, []cid.Cid{c})
+
+	node, err := p.Get(ctx, c)
+
+	if err != nil {
+		return nil, err
+	}
+	directory, err := ufsio.NewDirectoryFromNode(p.DAGService, node)
+	if err != nil {
+		return nil, err
+	}
+	return directory, nil
+}
+
 // Getting the directory from the node.
 func (p *Node) GetDirectory(ctx context.Context, c ipld.Node) (ufsio.Directory, error) {
 	directory, err := ufsio.NewDirectoryFromNode(p.DAGService, c)

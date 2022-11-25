@@ -247,21 +247,56 @@ func TestGetDirectory(t *testing.T) {
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
-	node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
+	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("uploaded", node.Cid())
 
-	//cid, err := cid.Decode("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4")
-
-	rsc, err := p1.GetFile(context.Background(), node.Cid())
+	rsc, err := p1.GetDirectory(context.Background(), node)
 	if err != nil {
 		t.Fatal(err)
 	}
-	content2, err := io.ReadAll(rsc)
-	t.Log("retrieved node: ", string(content2))
-	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
+	retrieveNode, err := rsc.GetNode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("retrieved root node", retrieveNode.Cid())
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
+}
+
+func TestGetDirectoryWithCid(t *testing.T) {
+	assert.Equal(t, true, true)
+	return
+	p1, err := NewNode(NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	})
+	pinfo1 := peer.AddrInfo{
+		ID:    p1.Host.ID(),
+		Addrs: p1.Host.Addrs(),
+	}
+	p1.BootstrapPeers([]peer.AddrInfo{pinfo1})
+	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("uploaded", node.Cid())
+
+	rsc, err := p1.GetDirectoryWithCid(context.Background(), node.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+	retrieveNode, err := rsc.GetNode()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("retrieved root node", retrieveNode.Cid())
+	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 }
 
 func TestAddPinDirectory(t *testing.T) {
