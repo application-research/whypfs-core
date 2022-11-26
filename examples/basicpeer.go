@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	whypfs "github.com/application-research/whypfs-core"
 	"io"
-	whypfs "whypfs-core"
 
 	"github.com/ipfs/go-cid"
 )
