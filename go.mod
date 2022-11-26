@@ -1,4 +1,4 @@
-module whypfs-core
+module github.com/application-research/whypfs-core
 
 go 1.18
 
@@ -25,7 +25,6 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
 	github.com/multiformats/go-multiaddr v0.7.0
 	github.com/multiformats/go-multihash v0.2.1
-	github.com/smartystreets/assertions v0.0.0-20180927180507-b2de0cb4f26d
 	github.com/stretchr/testify v1.8.0
 	github.com/whyrusleeping/go-bs-measure v0.0.0-20220728174732-077cd42cf89d
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1

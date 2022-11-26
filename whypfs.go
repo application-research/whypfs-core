@@ -693,6 +693,9 @@ func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (
 // must have been added as a UnixFS DAG (default for IPFS).
 func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, error) {
 	n, err := p.Get(ctx, c)
+	if err == nil {
+		return ufsio.NewDagReader(ctx, n, p.DAGService)
+	}
 	if err != nil {
 		return nil, err
 	}
