@@ -24,7 +24,7 @@ go get github.com/application-research/whypfs-core
 
 ## Setup a node
 ```
-p1, err := p1, err1 := NewNode(NewNodeParams{Ctx: context.Background()})	
+peer, err := NewNode(NewNodeParams{Ctx: context.Background()})	
 if err != nil {
     t.Fatal(err)
 }
@@ -32,14 +32,14 @@ if err != nil {
 
 ## Add/Pin and Get a file
 ```
-node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
-content, err := p1.GetFile(context.Background(), node.Cid())
+node, err := peer.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
+content, err := peer.GetFile(context.Background(), node.Cid())
 ```
 
 ## Add/Pin Directory and Get the ipld.Node of the directory
 ```
-node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
-mainDirNode, err := p1.GetDirectory(context.Background(), node)
+node, err := peer.AddPinDirectory(context.Background(), "./test/test_directory")
+mainDirNode, err := peer.GetDirectory(context.Background(), node)
 ```
 
 ## Provides
