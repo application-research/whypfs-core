@@ -398,19 +398,19 @@ func (p *Node) setupDatastore() error {
 		}
 		p.Datastore = ds // data store.
 
-		dhtopts := fullrt.DHTOption(
-			dht.Datastore(p.Datastore),
-			dht.BootstrapPeers(DefaultBootstrapPeers()...),
-			dht.BucketSize(20),
-		)
-
-		frt, err := fullrt.NewFullRT(p.Host, dht.DefaultPrefix, dhtopts)
-		if err != nil {
-			return xerrors.Errorf("constructing fullrt: %w", err)
-		}
-		p.FullRt = frt // full routing table
-
 	}
+
+	dhtopts := fullrt.DHTOption(
+		dht.Datastore(p.Datastore),
+		dht.BootstrapPeers(DefaultBootstrapPeers()...),
+		dht.BucketSize(20),
+	)
+
+	frt, err := fullrt.NewFullRT(p.Host, dht.DefaultPrefix, dhtopts)
+	if err != nil {
+		return xerrors.Errorf("constructing fullrt: %w", err)
+	}
+	p.FullRt = frt // full routing table
 
 	//	no ipfs Dht, let's set it up for them.
 	if p.Dht == nil {
@@ -704,15 +704,11 @@ func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, er
 
 // Getting the directory with the cid.
 func (p *Node) GetDirectoryWithCid(ctx context.Context, c cid.Cid) (ufsio.Directory, error) {
-
-	//links, _ :=
-	//nodes := ipld.GetNodes(ctx, p, []cid.Cid{c})
-
 	node, err := p.Get(ctx, c)
-
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("node", node)
 	directory, err := ufsio.NewDirectoryFromNode(p.DAGService, node)
 	if err != nil {
 		return nil, err

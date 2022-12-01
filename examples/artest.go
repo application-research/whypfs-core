@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	whypfs "github.com/application-research/whypfs-core"
@@ -12,7 +11,7 @@ import (
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func BasicPeer() {
+func ArTest() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -20,25 +19,31 @@ func BasicPeer() {
 		Ctx:       ctx,
 		Datastore: whypfs.NewInMemoryDatastore(),
 	})
+
 	whypfsPeer.BootstrapPeers(whypfs.DefaultBootstrapPeers())
 
-	file, err := whypfsPeer.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
-	if err != nil {
-		return
-	}
-
-	fmt.Println("File CID: ", file.Cid().String())
-
-	c, _ := cid.Decode("bafybeiawc5enlmxtwdbnts3mragh5eyhl3wn5qekvimw72igdj45lixbo4")
-	rsc, err := whypfsPeer.GetFile(ctx, c)
+	c1, _ := cid.Decode("QmbJGGJkjGfYCmHqwoMjLTbUA6bdcFBbNdWChFY6dKNRWx")
+	rsc1, err := whypfsPeer.GetFile(ctx, c1)
 	if err != nil {
 		panic(err)
 	}
-	defer rsc.Close()
-	content, err := io.ReadAll(rsc)
+	defer rsc1.Close()
+	content1, err := io.ReadAll(rsc1)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(string(content))
+	c2, _ := cid.Decode("QmPecv5jpAPVG3LUN8fbptnaPHFzt3SRtxC8e1XZCVMiSM")
+	rsc2, err := whypfsPeer.GetFile(ctx, c2)
+	if err != nil {
+		panic(err)
+	}
+	defer rsc2.Close()
+	content2, err := io.ReadAll(rsc2)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(content1))
+	fmt.Println(string(content2))
 }
