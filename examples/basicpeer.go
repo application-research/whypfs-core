@@ -12,7 +12,7 @@ import (
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func main() {
+func basicPeer() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
