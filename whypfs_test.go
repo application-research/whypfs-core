@@ -4,6 +4,7 @@ package whypfs
 import (
 	"bytes"
 	"context"
+	"github.com/ipfs/go-cid"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -268,24 +269,15 @@ func TestGetDirectory(t *testing.T) {
 }
 
 func TestGetDirectoryWithCid(t *testing.T) {
-	assert.Equal(t, true, true)
-	return
+
 	p1, err := NewNode(NewNodeParams{
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
-	pinfo1 := peer.AddrInfo{
-		ID:    p1.Host.ID(),
-		Addrs: p1.Host.Addrs(),
-	}
-	p1.BootstrapPeers([]peer.AddrInfo{pinfo1})
-	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Log("uploaded", node.Cid())
+	p1.BootstrapPeers(DefaultBootstrapPeers())
 
-	rsc, err := p1.GetDirectoryWithCid(context.Background(), node.Cid())
+	cid, err := cid.Decode("bafybeigvgzoolc3drupxhlevdp2ugqcrbcsqfmcek2zxiw5wctk3xjpjwy")
+	rsc, err := p1.GetDirectoryWithCid(context.Background(), cid)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +287,7 @@ func TestGetDirectoryWithCid(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("retrieved root node", retrieveNode.Cid())
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.Equal(t, "bafybeigvgzoolc3drupxhlevdp2ugqcrbcsqfmcek2zxiw5wctk3xjpjwy", retrieveNode.Cid().String())
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 }
 
