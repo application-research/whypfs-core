@@ -9,6 +9,7 @@ import (
 	format "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	"github.com/ipld/go-car"
+	"io/ioutil"
 )
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
@@ -27,6 +28,7 @@ func main() {
 	node1 := &merkledag.ProtoNode{}
 	node2 := &merkledag.ProtoNode{}
 	node3 := &merkledag.ProtoNode{}
+	node4 := &merkledag.ProtoNode{}
 	rootNode := &merkledag.ProtoNode{}
 	node1.AddNodeLink("node1 - yehey", baseNode)
 	node1.SetData([]byte("node1 - yehey"))
@@ -34,12 +36,18 @@ func main() {
 	node2.SetData([]byte("node2  - nice"))
 	node3.AddNodeLink("node3 - wow", node2)
 	node3.SetData([]byte("node3 - wow"))
-	rootNode.AddNodeLink("root - alright", node3)
+	node4.AddNodeLink("node4 - cool", node3)
+
+	// file
+	file, err := ioutil.ReadFile("test_file_for_car1.log")
+	node4.SetData(file)
+
+	rootNode.AddNodeLink("root - alright", node4)
 	rootNode.SetData([]byte("root - alright"))
 
 	fmt.Println("Root CID before: ", rootNode.Cid().String())
 
-	assertAddNodes(whypfsPeer.DAGService, rootNode, node3, node2, node1, baseNode)
+	assertAddNodes(whypfsPeer.DAGService, rootNode, node4, node3, node2, node1, baseNode)
 
 	buf := new(bytes.Buffer)
 	if err := car.WriteCar(context.Background(), whypfsPeer.DAGService, []cid.Cid{rootNode.Cid()}, buf); err != nil {
