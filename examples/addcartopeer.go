@@ -14,7 +14,7 @@ import (
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func main() {
+func AddCarToPeerV1() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -44,8 +44,9 @@ func main() {
 
 	rootNode.AddNodeLink("root - alright", node4)
 	rootNode.SetData([]byte("root - alright"))
+	go
 
-	fmt.Println("Root CID before: ", rootNode.Cid().String())
+		fmt.Println("Root CID before: ", rootNode.Cid().String())
 
 	assertAddNodes(whypfsPeer.DAGService, rootNode, node4, node3, node2, node1, baseNode)
 
@@ -62,12 +63,6 @@ func main() {
 	fmt.Print(rootNode.Cid().String())
 	fmt.Println(string(ch.Version))
 
-	//rootCid, err := whypfsPeer.Get(ctx, rootNode.Cid())
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println("Root CID after: ", rootCid.String())
-
 	for _, c := range ch.Roots {
 		rootCid, err := whypfsPeer.Get(ctx, c)
 		fmt.Println("Root CID after: ", rootCid.String())
@@ -76,7 +71,6 @@ func main() {
 		}
 		traverseLinks(ctx, whypfsPeer.DAGService, rootCid)
 	}
-	//traverseLinks(ctx, whypfsPeer.DAGService, rootNode)
 }
 
 func assertAddNodes(ds format.DAGService, nds ...format.Node) {

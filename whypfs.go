@@ -149,14 +149,60 @@ func (cfg *Config) setDefaults() {
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 }
 
+func (cfg *Config) applyUserDefinedConfig(config *Config) {
+	if config.Offline {
+		cfg.Offline = config.Offline
+	}
+	if config.ReprovideInterval != 0 {
+		cfg.ReprovideInterval = config.ReprovideInterval
+	}
+	if config.NoBlockstoreCache {
+		cfg.NoBlockstoreCache = config.NoBlockstoreCache
+	}
+	if config.NoAnnounceContent {
+		cfg.NoAnnounceContent = config.NoAnnounceContent
+	}
+	if config.NoLimiter {
+		cfg.NoLimiter = config.NoLimiter
+	}
+	if config.BitswapConfig.MaxOutstandingBytesPerPeer != 0 {
+		cfg.BitswapConfig.MaxOutstandingBytesPerPeer = config.BitswapConfig.MaxOutstandingBytesPerPeer
+	}
+	if config.BitswapConfig.TargetMessageSize != 0 {
+		cfg.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
+	}
+	if config.ConnectionManagerConfig.HighWater != 0 {
+		cfg.ConnectionManagerConfig.HighWater = config.ConnectionManagerConfig.HighWater
+	}
+	if config.ConnectionManagerConfig.LowWater != 0 {
+		cfg.ConnectionManagerConfig.LowWater = config.ConnectionManagerConfig.LowWater
+	}
+	if config.DatastoreDir.Directory != "" {
+		cfg.DatastoreDir.Directory = config.DatastoreDir.Directory
+	}
+	if config.Blockstore != "" {
+		cfg.Blockstore = config.Blockstore
+	}
+	if config.Libp2pKeyFile != "" {
+		cfg.Libp2pKeyFile = config.Libp2pKeyFile
+	}
+	if config.ListenAddrs != nil {
+		cfg.ListenAddrs = config.ListenAddrs
+	}
+	if config.AnnounceAddrs != nil {
+		cfg.AnnounceAddrs = config.AnnounceAddrs
+	}
+}
+
 //	NewNode creates a new WhyPFS node with the given configuration.
 func NewNode(
 	nodeParams NewNodeParams) (*Node, error) {
 	var err error
-	if nodeParams.Config == nil {
-		nodeParams.Config = &Config{}
-		nodeParams.Config.setDefaults()
-	}
+	// strictly set defaults
+	nodeParams.Config.setDefaults()
+
+	// override from nodeparams
+	nodeParams.Config.applyUserDefinedConfig(nodeParams.Config)
 
 	if nodeParams.Repo == "" {
 		nodeParams.Repo = ".whypfs"
