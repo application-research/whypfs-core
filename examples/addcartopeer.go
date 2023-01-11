@@ -44,9 +44,7 @@ func AddCarToPeerV1() {
 
 	rootNode.AddNodeLink("root - alright", node4)
 	rootNode.SetData([]byte("root - alright"))
-	go
-
-		fmt.Println("Root CID before: ", rootNode.Cid().String())
+	go fmt.Println("Root CID before: ", rootNode.Cid().String())
 
 	assertAddNodes(whypfsPeer.DAGService, rootNode, node4, node3, node2, node1, baseNode)
 
@@ -61,8 +59,6 @@ func AddCarToPeerV1() {
 	}
 
 	fmt.Print(rootNode.Cid().String())
-	fmt.Println(string(ch.Version))
-
 	for _, c := range ch.Roots {
 		rootCid, err := whypfsPeer.Get(ctx, c)
 		fmt.Println("Root CID after: ", rootCid.String())
