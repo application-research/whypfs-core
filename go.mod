@@ -21,6 +21,7 @@ require (
 	github.com/ipfs/go-merkledag v0.8.0
 	github.com/ipfs/go-metrics-interface v0.0.1
 	github.com/ipfs/go-unixfs v0.4.1
+	github.com/ipld/go-car v0.5.0
 	github.com/libp2p/go-libp2p v0.23.4
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
 	github.com/multiformats/go-multiaddr v0.7.0
