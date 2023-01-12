@@ -129,8 +129,9 @@ type BitswapConfig struct {
 	TargetMessageSize          int
 }
 
-func (cfg *Config) setDefaults() {
+func SetConfigDefaults() *Config {
 
+	cfg := &Config{}
 	// optimal settings
 	cfg.Offline = false
 	cfg.ReprovideInterval = defaultReprovideInterval
@@ -147,62 +148,61 @@ func (cfg *Config) setDefaults() {
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
 	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+
+	return cfg
 }
 
-func (cfg *Config) applyUserDefinedConfig(config *Config) {
-	if config.Offline {
-		cfg.Offline = config.Offline
+func (n NewNodeParams) ConfigurationBuilder(config *Config) *Config {
+
+	// get the default configuration and override it using the config
+	defaultConfig := SetConfigDefaults()
+
+	// check each config if it has some value and override the defaultConfig
+	defaultConfig.NoAnnounceContent = config.NoAnnounceContent
+
+	if config.ConnectionManagerConfig.LowWater > 0 {
+		defaultConfig.ConnectionManagerConfig.LowWater = config.ConnectionManagerConfig.LowWater
 	}
-	if config.ReprovideInterval != 0 {
-		cfg.ReprovideInterval = config.ReprovideInterval
+	if config.ConnectionManagerConfig.HighWater > 0 {
+		defaultConfig.ConnectionManagerConfig.HighWater = config.ConnectionManagerConfig.HighWater
 	}
-	if config.NoBlockstoreCache {
-		cfg.NoBlockstoreCache = config.NoBlockstoreCache
+
+	if config.BitswapConfig.TargetMessageSize > 0 {
+		defaultConfig.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
 	}
-	if config.NoAnnounceContent {
-		cfg.NoAnnounceContent = config.NoAnnounceContent
+	if config.BitswapConfig.MaxOutstandingBytesPerPeer > 0 {
+		defaultConfig.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
 	}
-	if config.NoLimiter {
-		cfg.NoLimiter = config.NoLimiter
-	}
-	if config.BitswapConfig.MaxOutstandingBytesPerPeer != 0 {
-		cfg.BitswapConfig.MaxOutstandingBytesPerPeer = config.BitswapConfig.MaxOutstandingBytesPerPeer
-	}
-	if config.BitswapConfig.TargetMessageSize != 0 {
-		cfg.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
-	}
-	if config.ConnectionManagerConfig.HighWater != 0 {
-		cfg.ConnectionManagerConfig.HighWater = config.ConnectionManagerConfig.HighWater
-	}
-	if config.ConnectionManagerConfig.LowWater != 0 {
-		cfg.ConnectionManagerConfig.LowWater = config.ConnectionManagerConfig.LowWater
-	}
-	if config.DatastoreDir.Directory != "" {
-		cfg.DatastoreDir.Directory = config.DatastoreDir.Directory
-	}
-	if config.Blockstore != "" {
-		cfg.Blockstore = config.Blockstore
-	}
-	if config.Libp2pKeyFile != "" {
-		cfg.Libp2pKeyFile = config.Libp2pKeyFile
-	}
-	if config.ListenAddrs != nil {
-		cfg.ListenAddrs = config.ListenAddrs
-	}
+
 	if config.AnnounceAddrs != nil {
-		cfg.AnnounceAddrs = config.AnnounceAddrs
+		defaultConfig.AnnounceAddrs = config.AnnounceAddrs
 	}
+
+	if config.ListenAddrs != nil {
+		defaultConfig.ListenAddrs = config.ListenAddrs
+	}
+
+	if config.Libp2pKeyFile != "" {
+		defaultConfig.Libp2pKeyFile = config.Libp2pKeyFile
+	}
+
+	if config.DatastoreDir.Directory != "datastore" {
+		defaultConfig.DatastoreDir = config.DatastoreDir
+	}
+
+	defaultConfig.DatastoreDir.Options = config.DatastoreDir.Options
+	return defaultConfig
 }
 
 //	NewNode creates a new WhyPFS node with the given configuration.
-func NewNode(
-	nodeParams NewNodeParams) (*Node, error) {
-	var err error
-	// strictly set defaults
-	nodeParams.Config.setDefaults()
+func NewNode(nodeParams NewNodeParams) (*Node, error) {
 
-	// override from nodeparams
-	nodeParams.Config.applyUserDefinedConfig(nodeParams.Config)
+	var err error
+
+	// strictly set defaults
+	if nodeParams.Config == nil {
+		nodeParams.Config = SetConfigDefaults()
+	}
 
 	if nodeParams.Repo == "" {
 		nodeParams.Repo = ".whypfs"
@@ -223,9 +223,9 @@ func NewNode(
 
 	nodeParams.Config.Blockstore = ":flatfs:" + filepath.Join(nodeParams.Repo, "blocks")
 
-	// create the node
 	node := &Node{}
 	node.Config = nodeParams.Config
+	// create the node context
 	node.Ctx = nodeParams.Ctx
 	node.Datastore = nodeParams.Datastore
 	node.Dht = nodeParams.Dht
