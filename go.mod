@@ -32,6 +32,7 @@ require (
 )
 
 require (
+	github.com/Zorlin/go-ipfs-chonker v0.0.0-20230222234128-1d71ac0b1096 // indirect
 	github.com/alecthomas/units v0.0.0-20210927113745-59d0afb8317a // indirect
 	github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
