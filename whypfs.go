@@ -717,7 +717,7 @@ func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (
 		CidBuilder: &prefix,
 	}
 
-	spl := chunker.NewSizeSplitter(r, 64*1024*1024)
+	spl := chunker.NewSizeSplitter(r, 2*1024*1024)
 	dbh, err := dbp.New(spl)
 	if err != nil {
 		return nil, err
