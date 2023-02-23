@@ -138,8 +138,8 @@ func SetConfigDefaults() *Config {
 	cfg.NoBlockstoreCache = false
 	cfg.NoAnnounceContent = false
 	cfg.NoLimiter = false
-	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 1 << 20
-	cfg.BitswapConfig.TargetMessageSize = 1 << 20
+	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 1 << 25
+	cfg.BitswapConfig.TargetMessageSize = 1 << 25
 	cfg.ConnectionManagerConfig.HighWater = 1000
 	cfg.ConnectionManagerConfig.LowWater = 900
 	cfg.DatastoreDir.Directory = "datastore"
