@@ -448,7 +448,7 @@ func (p *Node) setupDatastore() error {
 
 	dhtopts := fullrt.DHTOption(
 		dht.Datastore(p.Datastore),
-		//dht.BootstrapPeers(DefaultBootstrapPeers()...),
+		dht.BootstrapPeers(DefaultBootstrapPeers()...),
 		dht.BucketSize(20),
 	)
 
