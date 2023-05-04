@@ -367,3 +367,38 @@ func TestAddPinDirectoryAndGetFromAnotherNode(t *testing.T) {
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 
 }
+
+func TestOverrideDefaultConfig(t *testing.T) {
+	params := NewNodeParams{
+		Ctx:       context.Background(),
+		Datastore: NewInMemoryDatastore(),
+	}
+	newConfig := &Config{
+		Offline:           true,
+		ReprovideInterval: 0,
+		Libp2pKeyFile:     "mykey",
+		ListenAddrs:       []string{"/ip4/127.0.0.1/tcp/0"},
+		AnnounceAddrs:     nil,
+		DatastoreDir: struct {
+			Directory string
+			Options   leveldb.Options
+		}{},
+		Blockstore:              "",
+		NoBlockstoreCache:       false,
+		NoAnnounceContent:       false,
+		NoLimiter:               false,
+		BitswapConfig:           BitswapConfig{},
+		ConnectionManagerConfig: ConnectionManager{},
+	}
+	params.Config = params.ConfigurationBuilder(newConfig)
+
+	p1, err1 := NewNode(params)
+	if err1 != nil {
+		t.Fatal(err1)
+	}
+
+	assert.Equal(t, p1.Config.Libp2pKeyFile, "mykey")
+	assert.Equal(t, p1.Config.AnnounceAddrs, []string{"/ip4/0.0.0.0/tcp/0"})
+	assert.Equal(t, p1.Config.ListenAddrs, []string{"/ip4/127.0.0.1/tcp/0"})
+	assert.Equal(t, p1.Config.Offline, params.Config.Offline)
+}

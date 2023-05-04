@@ -129,8 +129,9 @@ type BitswapConfig struct {
 	TargetMessageSize          int
 }
 
-func (cfg *Config) setDefaults() {
+func SetConfigDefaults() *Config {
 
+	cfg := &Config{}
 	// optimal settings
 	cfg.Offline = false
 	cfg.ReprovideInterval = defaultReprovideInterval
@@ -147,15 +148,60 @@ func (cfg *Config) setDefaults() {
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
 	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+
+	return cfg
+}
+
+func (n NewNodeParams) ConfigurationBuilder(config *Config) *Config {
+
+	// get the default configuration and override it using the config
+	defaultConfig := SetConfigDefaults()
+
+	// check each config if it has some value and override the defaultConfig
+	defaultConfig.NoAnnounceContent = config.NoAnnounceContent
+
+	if config.ConnectionManagerConfig.LowWater > 0 {
+		defaultConfig.ConnectionManagerConfig.LowWater = config.ConnectionManagerConfig.LowWater
+	}
+	if config.ConnectionManagerConfig.HighWater > 0 {
+		defaultConfig.ConnectionManagerConfig.HighWater = config.ConnectionManagerConfig.HighWater
+	}
+
+	if config.BitswapConfig.TargetMessageSize > 0 {
+		defaultConfig.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
+	}
+	if config.BitswapConfig.MaxOutstandingBytesPerPeer > 0 {
+		defaultConfig.BitswapConfig.TargetMessageSize = config.BitswapConfig.TargetMessageSize
+	}
+
+	if config.AnnounceAddrs != nil {
+		defaultConfig.AnnounceAddrs = config.AnnounceAddrs
+	}
+
+	if config.ListenAddrs != nil {
+		defaultConfig.ListenAddrs = config.ListenAddrs
+	}
+
+	if config.Libp2pKeyFile != "" {
+		defaultConfig.Libp2pKeyFile = config.Libp2pKeyFile
+	}
+
+	if config.DatastoreDir.Directory != "datastore" {
+		defaultConfig.DatastoreDir = config.DatastoreDir
+	}
+
+	defaultConfig.DatastoreDir.Options = config.DatastoreDir.Options
+	return defaultConfig
 }
 
 //	NewNode creates a new WhyPFS node with the given configuration.
-func NewNode(
-	nodeParams NewNodeParams) (*Node, error) {
+func NewNode(nodeParams NewNodeParams) (*Node, error) {
+
 	var err error
+
+	// strictly set defaults
 	if nodeParams.Config == nil {
-		nodeParams.Config = &Config{}
-		nodeParams.Config.setDefaults()
+		nodeParams.Config = SetConfigDefaults()
 	}
 
 	if nodeParams.Repo == "" {
@@ -177,9 +223,9 @@ func NewNode(
 
 	nodeParams.Config.Blockstore = ":flatfs:" + filepath.Join(nodeParams.Repo, "blocks")
 
-	// create the node
 	node := &Node{}
 	node.Config = nodeParams.Config
+	// create the node context
 	node.Ctx = nodeParams.Ctx
 	node.Datastore = nodeParams.Datastore
 	node.Dht = nodeParams.Dht
