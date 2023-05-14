@@ -30,6 +30,41 @@ if err != nil {
 }
 ```
 
+## Set up a node with your own config
+```
+// initialize a node parameter
+params := NewNodeParams{
+    Ctx:       context.Background(),
+    Datastore: NewInMemoryDatastore(),
+}
+
+// create a new config of your own
+newConfig := &Config{
+    Offline:           true,
+    ReprovideInterval: 0,
+    Libp2pKeyFile:     "mykey",
+    ListenAddrs:       []string{"/ip4/127.0.0.1/tcp/0"},
+    AnnounceAddrs:     nil,
+    DatastoreDir: struct {
+        Directory string
+        Options   leveldb.Options
+    }{},
+    Blockstore:              "",
+    NoBlockstoreCache:       false,
+    NoAnnounceContent:       false,
+    NoLimiter:               false,
+    BitswapConfig:           BitswapConfig{},
+    ConnectionManagerConfig: ConnectionManager{},
+}
+
+// set it
+params.Config = params.ConfigurationBuilder(newConfig)
+myNode, err := NewNode(params)
+if err1 != nil {
+    t.Fatal(err)
+}
+```
+
 ## Add/Pin and Get a file
 ```
 node, err := peer.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
@@ -49,3 +84,9 @@ mainDirNode, err := peer.GetDirectory(context.Background(), node)
 - GetFile function to get a file using a CID
 - GetDirectory function to retrieve an entire directory from a ipld.Node
 - Custom bootstrap nodes
+
+## Examples
+There are a few examples on how to utilize the node which includes
+- how to create a running peer node.
+- how to create a CAR file and add it to the peer node
+- how to add a file / dir to the peer node.
