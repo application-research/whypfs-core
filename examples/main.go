@@ -4,5 +4,4 @@ import "fmt"
 
 func main() {
 	fmt.Println("Testing Grounds Only!")
-
 }
