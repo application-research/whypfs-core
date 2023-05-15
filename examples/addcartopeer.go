@@ -12,9 +12,15 @@ import (
 	"github.com/ipfs/go-unixfs/importer/balanced"
 	"github.com/ipfs/go-unixfs/importer/helpers"
 	"github.com/ipld/go-car"
+	ipldprime "github.com/ipld/go-ipld-prime"
+	basicnode "github.com/ipld/go-ipld-prime/node/basic"
+	"github.com/ipld/go-ipld-prime/traversal/selector"
+	"github.com/ipld/go-ipld-prime/traversal/selector/builder"
+	selectorparse "github.com/ipld/go-ipld-prime/traversal/selector/parse"
 	"github.com/multiformats/go-multihash"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 func GetPublicIP() (string, error) {
@@ -45,16 +51,16 @@ func CreateNodeRaw(data []byte, whypfsPeer whypfs.Node) format.Node {
 	cidBuilder, err := merkledag.PrefixForCidVersion(1)
 	cidBuilder.MhType = uint64(multihash.SHA2_256)
 	cidBuilder.MhLength = -1
-
+	const UnixfsLinksPerLevel = 1 << 10
 	dbp := helpers.DagBuilderParams{
 		Dagserv:    whypfsPeer.DAGService,
 		RawLeaves:  true,
-		Maxlinks:   helpers.DefaultLinksPerBlock,
+		Maxlinks:   UnixfsLinksPerLevel,
 		NoCopy:     false,
 		CidBuilder: &cidBuilder,
 	}
 	//
-	spl := chunker.NewSizeSplitter(bytes.NewReader(data), 1024*1024)
+	spl := chunker.NewSizeSplitter(bytes.NewReader(data), UnixfsLinksPerLevel)
 	dbh, err := dbp.New(spl)
 	if err != nil {
 		panic(err)
@@ -67,10 +73,17 @@ func CreateNodeRaw(data []byte, whypfsPeer whypfs.Node) format.Node {
 
 	return node1Raw1
 }
+func allSelector() ipldprime.Node {
+	ssb := builder.NewSelectorSpecBuilder(basicnode.Prototype.Any)
+	return ssb.ExploreFields(func(efsb builder.ExploreFieldsSpecBuilder) {
+		efsb.Insert("Links",
+			ssb.ExploreIndex(1, ssb.ExploreRecursive(selector.RecursionLimitNone(), ssb.ExploreAll(ssb.ExploreRecursiveEdge()))))
+	}).Node()
+}
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func AddCarToPeer() {
+func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -97,10 +110,31 @@ func AddCarToPeer() {
 	whypfsPeer.BootstrapPeers(whypfs.DefaultBootstrapPeers())
 
 	//node1Raw := merkledag.NewRawNode([]byte("letsrebuildtolearnnewthings!1"))
-	node1Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!1"), *whypfsPeer)
-	node2Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!2"), *whypfsPeer)
-	node3Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!3"), *whypfsPeer)
-	node4Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!4"), *whypfsPeer)
+	//node1Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!1"), *whypfsPeer)
+	//node2Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!2"), *whypfsPeer)
+	//node3Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!3"), *whypfsPeer)
+	//node4Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!4"), *whypfsPeer)
+	dserv := merkledag.NewDAGService(whypfsPeer.Blockservice)
+	node1Raw := merkledag.NewRawNode([]byte("aaaa"))
+	node2Raw := merkledag.NewRawNode([]byte("bbbb"))
+	node3Raw := merkledag.NewRawNode([]byte("cccc"))
+	file, err := ioutil.ReadFile("test_file_for_car1.log")
+	if err != nil {
+		panic(err)
+	}
+	node4Raw := merkledag.NewRawNode(file)
+
+	// node 1
+	// file raw node
+	// node 2
+	// file raw node
+	// node 2 connect 1
+	// node 3
+	// file raw node
+	// node 3 connect 2
+	// node 4
+	// file raw node
+	// node 4 connect to 3
 
 	node1 := &merkledag.ProtoNode{}
 	node1.AddNodeLink("node1", node1Raw)
@@ -117,42 +151,43 @@ func AddCarToPeer() {
 	node3.SetCidBuilder(GetCidBuilderDefault())
 
 	node4 := &merkledag.ProtoNode{}
-	//node4.AddNodeLink("node4 - wow node1", node1)
-	//node4.AddNodeLink("node4 - wow node2", node2)
 	node4.AddNodeLink("node43", node3)
 
 	// file
-	file, err := ioutil.ReadFile("test_file_for_car1.log")
 	node4.AddNodeLink("node4root", node4Raw)
-	node4.SetData(file)
 	node4.SetCidBuilder(GetCidBuilderDefault())
 
-	//rootNode.AddNodeLink("root - alright", node4)
-	//rootNode.SetCidBuilder(cidBuilder)
-	//rootNode.SetData([]byte("root - alright"))
-	//fmt.Println("Root CID before: ", rootNode.Cid().String())
-	assertAddNodes(*whypfsPeer, node1Raw, node2Raw, node3Raw, node4Raw, node1, node2, node3, node4)
+	assertAddNodes(dserv, node1Raw, node2Raw, node3Raw, node4Raw, node1, node2, node3, node4)
 
+	//	selector := allSelector()
+	// [node4 > raw4, node3 > [raw3, node2 > [raw2, node1 > raw1]]]
+	sc := car.NewSelectiveCar(ctx, whypfsPeer.Blockservice.Blockstore(), []car.Dag{{Root: node4.Cid(), Selector: selectorparse.CommonSelector_ExploreAllRecursively}})
 	buf := new(bytes.Buffer)
-	if err := car.WriteCar(context.Background(), whypfsPeer.DAGService, []cid.Cid{node4.Cid()}, buf); err != nil {
+	blockCount := 0
+	var oneStepBlocks []car.Block
+	err = sc.Write(buf, func(block car.Block) error {
+		oneStepBlocks = append(oneStepBlocks, block)
+		blockCount++
+		return nil
+	})
+	if err != nil {
 		panic(err)
 	}
+
+	// write raw to data file
+	// [node4 > raw4, node3 > [raw3, node2 > [raw2, node1 > raw1]]]
+	fmt.Println("CAR block count: ", blockCount)
 	fmt.Println("CAR file size: ", buf.Len())
+
 	ch, err := car.LoadCar(context.Background(), whypfsPeer.Blockservice.Blockstore(), buf)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("Root CID LoadedCAR: ", ch.Roots[0].String())
-	rootCidToWrite, err := whypfsPeer.Get(ctx, ch.Roots[0])
-	// write raw to data file
-	raw := rootCidToWrite.RawData()
-	err = ioutil.WriteFile("data_file_for_car1.car", raw, 0644)
-
 	for _, c := range ch.Roots {
 		rootCid, err := whypfsPeer.Get(ctx, c)
 		fmt.Println("Root CID after: ", rootCid.String())
-
 		if err != nil {
 			panic(err)
 		}
@@ -173,10 +208,10 @@ func AddCarToPeer() {
 	}
 }
 
-func assertAddNodes(ds whypfs.Node, nds ...format.Node) {
+func assertAddNodes(ds format.DAGService, nds ...format.Node) {
 	for _, nd := range nds {
 		fmt.Println("Adding node: ", nd.Cid().String())
-		err := ds.DAGService.Add(context.Background(), nd)
+		err := ds.Add(context.Background(), nd)
 		if err != nil {
 			fmt.Println("Error adding node: ", err)
 		}
@@ -192,6 +227,15 @@ func traverseLinks(ctx context.Context, ds format.DAGService, nd format.Node) {
 			panic(err)
 		}
 		fmt.Println("Node CID: ", node.Cid().String())
+		fmt.Println("Node Data: ", string(node.RawData()))
+		// write/append data to file
+		f, err := os.OpenFile("data_file_for_car1.car", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		f.Write(node.RawData())
+		f.Close()
+
+		if err != nil {
+			panic(err)
+		}
 		traverseLinks(ctx, ds, node)
 	}
 }
