@@ -83,7 +83,7 @@ func allSelector() ipldprime.Node {
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func main() {
+func AddCarToPeer() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -108,7 +108,10 @@ func main() {
 	params.Config = params.ConfigurationBuilder(newConfig)
 	whypfsPeer, err := whypfs.NewNode(params)
 	whypfsPeer.BootstrapPeers(whypfs.DefaultBootstrapPeers())
+	f, _ := os.Open("data_file_for_car1.car")
 
+	ndA, _ := whypfsPeer.AddPinFile(context.Background(), f, nil)
+	fmt.Println("ndA.Cid().String() = ", ndA.Cid().String())
 	//node1Raw := merkledag.NewRawNode([]byte("letsrebuildtolearnnewthings!1"))
 	//node1Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!1"), *whypfsPeer)
 	//node2Raw := CreateNodeRaw([]byte("letsrebuildtolearnnewthings!2"), *whypfsPeer)
@@ -118,6 +121,7 @@ func main() {
 	node1Raw := merkledag.NewRawNode([]byte("aaaa"))
 	node2Raw := merkledag.NewRawNode([]byte("bbbb"))
 	node3Raw := merkledag.NewRawNode([]byte("cccc"))
+
 	file, err := ioutil.ReadFile("test_file_for_car1.log")
 	if err != nil {
 		panic(err)
@@ -137,7 +141,9 @@ func main() {
 	// node 4 connect to 3
 
 	node1 := &merkledag.ProtoNode{}
-	node1.AddNodeLink("node1", node1Raw)
+	node1.AddNodeLink("split1", node1Raw)
+	node1.AddNodeLink("split1", node2Raw)
+	node1.AddNodeLink("split1", node3Raw)
 	node1.SetCidBuilder(GetCidBuilderDefault())
 
 	node2 := &merkledag.ProtoNode{}
@@ -178,6 +184,17 @@ func main() {
 	// [node4 > raw4, node3 > [raw3, node2 > [raw2, node1 > raw1]]]
 	fmt.Println("CAR block count: ", blockCount)
 	fmt.Println("CAR file size: ", buf.Len())
+
+	// read raw from data file
+	// [node4 > raw4, node3 > [raw3, node2 > [raw2, node1 > raw1]]]
+	//cids := make(chan cid.Cid)
+	//var equalSizeCar []cid.Cid
+	//for _, b := range whypfsPeer.Blockstore.AllKeysChan(ctx) {
+	//	cids <- b
+	//
+	//	// get cid
+	//}
+	//fmt.Println("Root CID: ", ch.Roots[0].String())
 
 	ch, err := car.LoadCar(context.Background(), whypfsPeer.Blockservice.Blockstore(), buf)
 	if err != nil {
