@@ -6,30 +6,39 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	ulimit "github.com/filecoin-project/go-ulimit"
-	"github.com/ipfs/go-bitswap"
-	bsnet "github.com/ipfs/go-bitswap/network"
-	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/boxo/bitswap"
+	bsnet "github.com/ipfs/boxo/bitswap/network"
+	"github.com/ipfs/boxo/blockservice"
+	blockstore "github.com/ipfs/boxo/blockstore"
+	chunker "github.com/ipfs/boxo/chunker"
+	exchange "github.com/ipfs/boxo/exchange"
+	"github.com/ipfs/boxo/ipld/merkledag"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/balanced"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/helpers"
+	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
+	ufsio "github.com/ipfs/boxo/ipld/unixfs/io"
+	provider "github.com/ipfs/boxo/provider"
+	"github.com/ipfs/boxo/provider/queue"
+	"github.com/ipfs/boxo/provider/simple"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-cidutil"
 	"github.com/ipfs/go-datastore"
 	flatfs "github.com/ipfs/go-ds-flatfs"
 	levelds "github.com/ipfs/go-ds-leveldb"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	exchange "github.com/ipfs/go-ipfs-exchange-interface"
-	provider "github.com/ipfs/go-ipfs-provider"
-	"github.com/ipfs/go-ipfs-provider/queue"
-	"github.com/ipfs/go-ipfs-provider/simple"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
-	"github.com/ipfs/go-merkledag"
 	metri "github.com/ipfs/go-metrics-interface"
-	"github.com/ipfs/go-unixfs/importer/balanced"
-	"github.com/ipfs/go-unixfs/importer/helpers"
-	"github.com/ipfs/go-unixfs/importer/trickle"
-	ufsio "github.com/ipfs/go-unixfs/io"
 	"github.com/libp2p/go-libp2p"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/fullrt"
@@ -43,14 +52,6 @@ import (
 	"github.com/multiformats/go-multihash"
 	bsm "github.com/whyrusleeping/go-bs-measure"
 	"golang.org/x/xerrors"
-	"io"
-	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
-	"strings"
-	"sync"
-	"time"
 )
 
 var logger = logging.Logger("whypfs-core")
@@ -194,7 +195,7 @@ func (n NewNodeParams) ConfigurationBuilder(config *Config) *Config {
 	return defaultConfig
 }
 
-//	NewNode creates a new WhyPFS node with the given configuration.
+// NewNode creates a new WhyPFS node with the given configuration.
 func NewNode(nodeParams NewNodeParams) (*Node, error) {
 
 	var err error
@@ -283,6 +284,7 @@ func ensureRepoExists(dir string) error {
 }
 
 //	Helper function to bootstrap peers
+//
 // Bootstrapping the node to the network.
 func (p *Node) BootstrapPeers(peers []peer.AddrInfo) {
 	connected := make(chan struct{})
@@ -388,7 +390,7 @@ func (p *Node) setupPeer() error {
 
 	var rcm network.ResourceManager
 	if p.Config.NoLimiter || true {
-		rcm, err = network.NullResourceManager, nil
+		rcm, err = nil, nil
 		logger.Warnf("starting node with no resource limits")
 	}
 
