@@ -20,14 +20,14 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1
 	github.com/ipfs/go-merkledag v0.8.0
 	github.com/ipfs/go-metrics-interface v0.0.1
-	github.com/ipfs/go-unixfs v0.4.1
+	github.com/ipfs/go-unixfs v0.4.5
 	github.com/ipld/go-car v0.5.0
 	github.com/ipld/go-ipld-prime v0.20.0
 	github.com/libp2p/go-libp2p v0.23.4
 	github.com/libp2p/go-libp2p-kad-dht v0.18.0
-	github.com/multiformats/go-multiaddr v0.7.0
+	github.com/multiformats/go-multiaddr v0.8.0
 	github.com/multiformats/go-multihash v0.2.1
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/testify v1.8.1
 	github.com/whyrusleeping/go-bs-measure v0.0.0-20220728174732-077cd42cf89d
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1
 )
@@ -41,6 +41,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/cgroups v1.0.4 // indirect
 	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
+	github.com/crackcomm/go-gitignore v0.0.0-20170627025303-887ab5e44cc3 // indirect
 	github.com/cskr/pubsub v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -66,12 +67,12 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/huin/goupnp v1.0.3 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/go-bitfield v1.0.0 // indirect
-	github.com/ipfs/go-block-format v0.0.3 // indirect
+	github.com/ipfs/go-bitfield v1.1.0 // indirect
+	github.com/ipfs/go-block-format v0.1.2 // indirect
 	github.com/ipfs/go-fetcher v1.5.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
-	github.com/ipfs/go-ipfs-files v0.0.3 // indirect
+	github.com/ipfs/go-ipfs-files v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-posinfo v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-pq v0.0.2 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect

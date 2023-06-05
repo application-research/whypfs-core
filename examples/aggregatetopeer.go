@@ -13,7 +13,7 @@ import (
 
 // Creating a new whypfs node, bootstrapping it with the default bootstrap peers, adding a file to the whypfs network, and
 // then retrieving the file from the whypfs network.
-func main() {
+func AggregateToPeer() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -118,8 +118,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	writeToFile.Write(dirNdRaw.RawData())
-	writeToFile.Close()
 
 	for _, v := range dirNdRaw.Links() {
 		fmt.Println("v.Cid", v.Cid)
@@ -128,8 +126,11 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("v.RawData", string(lNd.RawData()))
+		writeToFile.Write(lNd.RawData())
+
 	}
+	//writeToFile.Write(dirNdRaw.RawData())
+	writeToFile.Close()
 
 }
 

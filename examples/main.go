@@ -2,6 +2,6 @@ package main
 
 import "fmt"
 
-func main1() {
+func main() {
 	fmt.Println("Testing Grounds Only!")
 }
