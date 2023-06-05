@@ -690,10 +690,6 @@ func (p *Node) deferClose() {
 // is stored as a UnixFS DAG (default for IPFS). It returns the root
 // ipld.Node.
 func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (ipld.Node, error) {
-
-	bserv := blockservice.New(p.Blockstore, nil)
-	dserv := merkledag.NewDAGService(bserv)
-
 	if params == nil {
 		params = &AddParams{}
 	}
@@ -706,19 +702,26 @@ func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (
 		return nil, fmt.Errorf("bad CID Version: %s", err)
 	}
 
-	prefix.MhType = uint64(multihash.SHA2_256)
+	hashFunCode, ok := multihash.Names[strings.ToLower(params.HashFun)]
+	if !ok {
+		return nil, fmt.Errorf("unrecognized hash function: %s", params.HashFun)
+	}
+	prefix.MhType = hashFunCode
 	prefix.MhLength = -1
 
 	dbp := helpers.DagBuilderParams{
-		Dagserv:    dserv,
+		Dagserv:    p,
 		RawLeaves:  params.RawLeaves,
 		Maxlinks:   helpers.DefaultLinksPerBlock,
 		NoCopy:     params.NoCopy,
 		CidBuilder: &prefix,
 	}
 
-	spl := chunker.NewSizeSplitter(r, 1024*1024)
-	dbh, err := dbp.New(spl)
+	chnk, err := chunker.FromString(r, params.Chunker)
+	if err != nil {
+		return nil, err
+	}
+	dbh, err := dbp.New(chnk)
 	if err != nil {
 		return nil, err
 	}
