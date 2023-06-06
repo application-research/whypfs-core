@@ -264,7 +264,7 @@ func TestGetDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("retrieved root node", retrieveNode.Cid())
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.Equal(t, "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354", retrieveNode.Cid().String())
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 }
 
