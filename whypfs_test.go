@@ -4,18 +4,17 @@ package whypfs
 import (
 	"bytes"
 	"context"
+	"io"
+	"path/filepath"
+	"testing"
+
 	"github.com/ipfs/go-cid"
 	leveldb "github.com/ipfs/go-ds-leveldb"
 	cbor "github.com/ipfs/go-ipld-cbor"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiformats/go-multihash"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"path/filepath"
-	"testing"
 )
-
-var secret = "thefoxjumpoverthebridgeofthefencealongthehighway7oftorontocanadasourceoftheborderwiththebestcoffeeever"
 
 // It creates two nodes, adds a file to one, and retrieves it from the other
 func setupNodes(t *testing.T) (*Node, *Node) {
