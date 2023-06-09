@@ -781,6 +781,9 @@ func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, err
 
 	dirNode := ufsio.NewDirectory(p.DAGService)
 	prefix, err := merkledag.PrefixForCidVersion(1)
+	if err != nil {
+		return nil, fmt.Errorf("bad CID Version: %s", err)
+	}
 	prefix.MhType = uint64(multihash.SHA2_256)
 
 	dirNode.SetCidBuilder(cidutil.InlineBuilder{
