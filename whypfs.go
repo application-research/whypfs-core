@@ -530,8 +530,6 @@ func (p *Node) setupReprovider() error {
 	if err != nil {
 		return err
 	}
-
-	p.System.Reprovide(p.Ctx)
 	return nil
 }
 
