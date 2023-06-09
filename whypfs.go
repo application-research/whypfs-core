@@ -813,5 +813,8 @@ func (p *Node) AddPinDirectory(ctx context.Context, path string) (ipld.Node, err
 		log.Println(err)
 	}
 	node, err := dirNode.GetNode()
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
