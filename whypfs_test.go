@@ -216,6 +216,9 @@ func TestAddPinFileAndGetItFromAnotherNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	content2, err := io.ReadAll(node2)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("retrieved node: ", string(content2))
 	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
 }
@@ -225,6 +228,9 @@ func TestGetFile(t *testing.T) {
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	node, err := p1.AddPinFile(context.Background(), bytes.NewReader([]byte("letsrebuildtolearnnewthings!")), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -238,6 +244,9 @@ func TestGetFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	content2, err := io.ReadAll(rsc)
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("retrieved node: ", string(content2))
 	assert.Equal(t, "letsrebuildtolearnnewthings!", string(content2))
 }
@@ -247,6 +256,9 @@ func TestGetDirectory(t *testing.T) {
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	node, err := p1.AddPinDirectory(context.Background(), "./test/test_directory")
 	if err != nil {
 		t.Fatal(err)
@@ -273,9 +285,15 @@ func TestGetDirectoryWithCid(t *testing.T) {
 		Ctx:       context.Background(),
 		Datastore: NewInMemoryDatastore(),
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	p1.BootstrapPeers(DefaultBootstrapPeers())
 
 	cid, err := cid.Decode("bafybeigvgzoolc3drupxhlevdp2ugqcrbcsqfmcek2zxiw5wctk3xjpjwy")
+	if err != nil {
+		t.Fatal(err)
+	}
 	rsc, err := p1.GetDirectoryWithCid(context.Background(), cid)
 	if err != nil {
 		t.Fatal(err)
