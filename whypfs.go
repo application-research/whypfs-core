@@ -635,7 +635,7 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 			return nil, "", err
 		}
 
-		return &deleteManyWrap{blockstore.NewBlockstoreNoPrefix(ds)}, path, nil
+		return &deleteManyWrap{blockstore.NewBlockstore(ds, blockstore.NoPrefix())}, path, nil
 
 	default:
 		return nil, "", fmt.Errorf("unrecognized Blockstore spec: %q", spec)
