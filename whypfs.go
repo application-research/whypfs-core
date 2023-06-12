@@ -526,14 +526,18 @@ func (p *Node) setupReprovider() error {
 	}
 
 	var err error
-	p.System, err = provider.New(p.Datastore,
+	if p.System, err = provider.New(p.Datastore,
 		provider.Online(p.Dht),
 		provider.ReproviderInterval(p.Config.ReprovideInterval),
 		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
-	)
-	if err != nil {
+	); err != nil {
 		return err
 	}
+
+	if err := p.System.Reprovide(p.Ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
