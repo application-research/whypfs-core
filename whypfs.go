@@ -6,6 +6,7 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"io"
 	"io/ioutil"
 	"log"
@@ -116,6 +117,7 @@ type Config struct {
 	NoAnnounceContent       bool
 	NoLimiter               bool
 	BitswapConfig           BitswapConfig
+	Limits                  rcmgr.ScalingLimitConfig
 	ConnectionManagerConfig ConnectionManager
 }
 
@@ -388,9 +390,8 @@ func (p *Node) setupPeer() error {
 	}
 
 	var rcm network.ResourceManager
-	if p.Config.NoLimiter || true {
-		rcm, err = nil, nil
-		logger.Warnf("starting node with no resource limits")
+	if p.Config.NoLimiter {
+		rcm = &network.NullResourceManager{}
 	}
 
 	if err != nil {
