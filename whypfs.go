@@ -6,6 +6,7 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"io"
 	"io/ioutil"
 	"log"
@@ -28,14 +29,11 @@ import (
 	"github.com/ipfs/boxo/ipld/unixfs/importer/trickle"
 	ufsio "github.com/ipfs/boxo/ipld/unixfs/io"
 	provider "github.com/ipfs/boxo/provider"
-	"github.com/ipfs/boxo/provider/queue"
-	"github.com/ipfs/boxo/provider/simple"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-cidutil"
 	"github.com/ipfs/go-datastore"
 	flatfs "github.com/ipfs/go-ds-flatfs"
 	levelds "github.com/ipfs/go-ds-leveldb"
-	cbor "github.com/ipfs/go-ipld-cbor"
 	ipld "github.com/ipfs/go-ipld-format"
 	logging "github.com/ipfs/go-log/v2"
 	metri "github.com/ipfs/go-metrics-interface"
@@ -61,11 +59,13 @@ var (
 )
 var BootstrapPeers []peer.AddrInfo
 
+/*
 func init() {
 	ipld.Register(cid.DagProtobuf, merkledag.DecodeProtobufBlock)
 	ipld.Register(cid.Raw, merkledag.DecodeRawBlock)
 	ipld.Register(cid.DagCBOR, cbor.DecodeBlock)
 }
+*/
 
 type NewNodeParams struct {
 	// Context is the context to use for the node.
@@ -94,7 +94,7 @@ type Node struct {
 	Blockstore   blockstore.Blockstore
 	Blockservice blockservice.BlockService
 	Datastore    datastore.Batching
-	Reprovider   provider.System
+	System       provider.System
 	Exchange     exchange.Interface
 	Bitswap      *bitswap.Bitswap
 	FullRt       *fullrt.FullRT
@@ -117,6 +117,7 @@ type Config struct {
 	NoAnnounceContent       bool
 	NoLimiter               bool
 	BitswapConfig           BitswapConfig
+	Limits                  rcmgr.ScalingLimitConfig
 	ConnectionManagerConfig ConnectionManager
 }
 
@@ -355,6 +356,13 @@ func (p *Node) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
 	return p.BlockStore().Has(ctx, c)
 }
 
+func NewResourceManager() (network.ResourceManager, error) {
+	limiter := rcmgr.NewFixedLimiter(rcmgr.InfiniteLimits)
+	rm, err := rcmgr.NewResourceManager(limiter)
+
+	return rm, err
+}
+
 // Setting up the node.
 func (p *Node) setupPeer() error {
 
@@ -389,11 +397,10 @@ func (p *Node) setupPeer() error {
 	}
 
 	var rcm network.ResourceManager
-	if p.Config.NoLimiter || true {
-		rcm, err = nil, nil
-		logger.Warnf("starting node with no resource limits")
+	if p.Config.NoLimiter {
+		rcm = &network.NullResourceManager{}
 	}
-
+	rcm, err = NewResourceManager()
 	if err != nil {
 		return err
 	}
@@ -522,30 +529,23 @@ func (p *Node) setupBlockservice() error {
 // Setting up the Reprovider.
 func (p *Node) setupReprovider() error {
 	if p.Config.Offline || p.Config.ReprovideInterval < 0 {
-		p.Reprovider = provider.NewOfflineProvider()
+		p.System = provider.NewNoopProvider()
 		return nil
 	}
 
-	queue, err := queue.NewQueue(p.Ctx, "provq", p.Datastore)
-	if err != nil {
+	var err error
+	if p.System, err = provider.New(p.Datastore,
+		provider.Online(p.Dht),
+		provider.ReproviderInterval(p.Config.ReprovideInterval),
+		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
+	); err != nil {
 		return err
 	}
 
-	prov := simple.NewProvider(
-		p.Ctx,
-		queue,
-		p.Dht,
-	)
+	if err := p.System.Reprovide(p.Ctx); err != nil {
+		return err
+	}
 
-	reprov := simple.NewReprovider(
-		p.Ctx,
-		p.Config.ReprovideInterval,
-		p.Dht,
-		simple.NewBlockstoreProvider(p.Blockstore),
-	)
-
-	p.Reprovider = provider.NewSystem(prov, reprov)
-	p.Reprovider.Run()
 	return nil
 }
 
@@ -684,7 +684,7 @@ func parseBsCfg(bscfg string) (string, []string, string, error) {
 // Closing the Reprovider and Blockservice when the context is done.
 func (p *Node) deferClose() {
 	<-p.Ctx.Done()
-	p.Reprovider.Close()
+	p.System.Close()
 	p.Blockservice.Close()
 }
 

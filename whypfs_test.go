@@ -275,7 +275,7 @@ func TestGetDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("retrieved root node", retrieveNode.Cid())
-	assert.Equal(t, "bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354", retrieveNode.Cid().String())
+	assert.Equal(t, "bafybeibrqrtlkikuvyw4sijsbgsqri243pl6ghnxllpcslslvl7gtnz3cq", retrieveNode.Cid().String())
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 }
 
@@ -322,7 +322,7 @@ func TestAddPinDirectory(t *testing.T) {
 	}
 	t.Log("uploaded root node", node.Cid())
 	assert.NotEmpty(t, node)
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", node.Cid().String())
+	assert.Equal(t, "bafybeibrqrtlkikuvyw4sijsbgsqri243pl6ghnxllpcslslvl7gtnz3cq", node.Cid().String())
 	rsc, err := p1.GetDirectory(context.Background(), node)
 	if err != nil {
 		t.Fatal(err)
@@ -333,7 +333,7 @@ func TestAddPinDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("retrieved root node", retrieveNode.Cid())
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.Equal(t, "bafybeibrqrtlkikuvyw4sijsbgsqri243pl6ghnxllpcslslvl7gtnz3cq", retrieveNode.Cid().String())
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 }
 
@@ -369,7 +369,7 @@ func TestAddPinDirectoryAndGetFromAnotherNode(t *testing.T) {
 	}
 	t.Log("uploaded root node", node.Cid())
 	assert.NotEmpty(t, node)
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", node.Cid().String())
+	assert.Equal(t, "bafybeibrqrtlkikuvyw4sijsbgsqri243pl6ghnxllpcslslvl7gtnz3cq", node.Cid().String())
 	rsc, err := p2.GetDirectory(context.Background(), node)
 	if err != nil {
 		t.Fatal(err)
@@ -380,7 +380,7 @@ func TestAddPinDirectoryAndGetFromAnotherNode(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("retrieved root node", retrieveNode.Cid())
-	assert.Equal(t, "bafybeihnhfwlfvq6eplc4i5cnj2of2whk6aab6kc4xeryr3ttfcaawjiyi", retrieveNode.Cid().String())
+	assert.Equal(t, "bafybeibrqrtlkikuvyw4sijsbgsqri243pl6ghnxllpcslslvl7gtnz3cq", retrieveNode.Cid().String())
 	assert.GreaterOrEqual(t, len(retrieveNode.Links()), 1)
 
 }
