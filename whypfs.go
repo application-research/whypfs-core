@@ -356,6 +356,13 @@ func (p *Node) HasBlock(ctx context.Context, c cid.Cid) (bool, error) {
 	return p.BlockStore().Has(ctx, c)
 }
 
+func NewResourceManager() (network.ResourceManager, error) {
+	limiter := rcmgr.NewFixedLimiter(rcmgr.InfiniteLimits)
+	rm, err := rcmgr.NewResourceManager(limiter)
+
+	return rm, err
+}
+
 // Setting up the node.
 func (p *Node) setupPeer() error {
 
@@ -393,7 +400,7 @@ func (p *Node) setupPeer() error {
 	if p.Config.NoLimiter {
 		rcm = &network.NullResourceManager{}
 	}
-
+	rcm, err = NewResourceManager()
 	if err != nil {
 		return err
 	}
