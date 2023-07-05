@@ -55,17 +55,15 @@ import (
 var logger = logging.Logger("whypfs-core")
 
 var (
-	defaultReprovideInterval = 8 * time.Hour
+	defaultReprovideInterval = 12 * time.Hour
 )
 var BootstrapPeers []peer.AddrInfo
 
-/*
-func init() {
-	ipld.Register(cid.DagProtobuf, merkledag.DecodeProtobufBlock)
-	ipld.Register(cid.Raw, merkledag.DecodeRawBlock)
-	ipld.Register(cid.DagCBOR, cbor.DecodeBlock)
-}
-*/
+//func init() {
+//	ipld.Register(cid.DagProtobuf, merkledag.DecodeProtobufBlock)
+//	ipld.Register(cid.Raw, merkledag.DecodeRawBlock)
+//	ipld.Register(cid.DagCBOR, cbor.DecodeBlock)
+//}
 
 type NewNodeParams struct {
 	// Context is the context to use for the node.
@@ -522,6 +520,7 @@ func (p *Node) setupBlockservice() error {
 	bswap := bitswap.New(p.Ctx, bswapnet, p.Blockstore, bsopts...)
 	p.Blockservice = blockservice.New(p.Blockstore, bswap)
 	p.Bitswap = bswap
+	p.Exchange = bswap
 
 	return nil
 }
@@ -535,6 +534,7 @@ func (p *Node) setupReprovider() error {
 
 	var err error
 	if p.System, err = provider.New(p.Datastore,
+		provider.DatastorePrefix(datastore.NewKey("repro")),
 		provider.Online(p.Dht),
 		provider.ReproviderInterval(p.Config.ReprovideInterval),
 		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
@@ -571,9 +571,9 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 		return nil, "", err
 	}
 
-	ctx := metri.CtxScope(context.TODO(), "estuary.bstore")
+	ctx := metri.CtxScope(context.TODO(), "whypfs-core.bstore")
 
-	bstore = bsm.New("estuary.blks.base", bstore)
+	bstore = bsm.New("whypfs-core.blks.base", bstore)
 
 	if !nocache {
 		cbstore, err := blockstore.CachedBlockstore(ctx, bstore, blockstore.CacheOpts{
@@ -587,7 +587,7 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 		bstore = &deleteManyWrap{cbstore}
 	}
 
-	mbs := bsm.New("estuary.repo", bstore)
+	mbs := bsm.New("whypfs-core.repo", bstore)
 
 	var blkst blockstore.Blockstore = mbs
 
@@ -688,7 +688,7 @@ func (p *Node) deferClose() {
 	p.Blockservice.Close()
 }
 
-// AddFile chunks and adds content to the DAGService from a reader. The content
+// AddPinFile chunks and adds content to the DAGService from a reader. The content
 // is stored as a UnixFS DAG (default for IPFS). It returns the root
 // ipld.Node.
 func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (ipld.Node, error) {
@@ -744,9 +744,6 @@ func (p *Node) AddPinFile(ctx context.Context, r io.Reader, params *AddParams) (
 // must have been added as a UnixFS DAG (default for IPFS).
 func (p *Node) GetFile(ctx context.Context, c cid.Cid) (ufsio.ReadSeekCloser, error) {
 	n, err := p.Get(ctx, c)
-	if err == nil {
-		return ufsio.NewDagReader(ctx, n, p.DAGService)
-	}
 	if err != nil {
 		return nil, err
 	}
