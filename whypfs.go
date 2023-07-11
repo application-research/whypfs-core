@@ -6,6 +6,8 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	nsds "github.com/ipfs/go-datastore/namespace"
+	record "github.com/libp2p/go-libp2p-record"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"io"
 	"io/ioutil"
@@ -95,6 +97,7 @@ type Node struct {
 	System       provider.System
 	Exchange     exchange.Interface
 	Bitswap      *bitswap.Bitswap
+	FilDht       *dht.IpfsDHT
 	FullRt       *fullrt.FullRT
 }
 
@@ -463,7 +466,22 @@ func (p *Node) setupDatastore() error {
 	if err != nil {
 		return xerrors.Errorf("constructing fullrt: %w", err)
 	}
-	p.FullRt = frt // full routing table
+	filopts := []dht.Option{dht.Mode(dht.ModeAuto),
+		dht.Datastore(nsds.Wrap(p.Datastore, datastore.NewKey("fildht"))),
+		dht.Validator(record.NamespacedValidator{
+			"pk": record.PublicKeyValidator{},
+		}),
+		dht.ProtocolPrefix("/fil/kad/testnetnet"),
+		dht.QueryFilter(dht.PublicQueryFilter),
+		dht.RoutingTableFilter(dht.PublicRoutingTableFilter),
+		dht.DisableProviders(),
+		dht.DisableValues()}
+	fildht, err := dht.New(p.Ctx, p.Host, filopts...)
+	if err != nil {
+		return xerrors.Errorf("constructing fildht: %w", err)
+	}
+	p.FilDht = fildht // filecoin Dht
+	p.FullRt = frt    // full routing table
 
 	//	no ipfs Dht, let's set it up for them.
 	if p.Dht == nil {
