@@ -149,7 +149,10 @@ func SetConfigDefaults() *Config {
 	cfg.DatastoreDir.Options = levelds.Options{}
 	cfg.Blockstore = ":flatfs:.whypfs/blocks"
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
-	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
+	cfg.ListenAddrs = []string{
+		"/ip4/0.0.0.0/tcp/6745",
+		"/ip4/0.0.0.0/udp/6746/quic",
+	}
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
 	return cfg
@@ -419,6 +422,7 @@ func (p *Node) setupPeer() error {
 		libp2p.BandwidthReporter(bwc),
 		libp2p.DefaultTransports,
 		libp2p.ResourceManager(rcm),
+		libp2p.EnableAutoRelay(),
 	}
 
 	if len(p.Config.AnnounceAddrs) > 0 {
