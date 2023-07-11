@@ -50,6 +50,5 @@ var connMgr, _ = connmgr.NewConnManager(100, 600, connmgr.WithGracePeriod(time.M
 var Libp2pOptionsExtra = []libp2p.Option{
 	libp2p.NATPortMap(),
 	libp2p.ConnectionManager(connMgr),
-	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
 }

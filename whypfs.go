@@ -143,8 +143,8 @@ func SetConfigDefaults() *Config {
 	cfg.NoLimiter = false
 	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 1 << 20
 	cfg.BitswapConfig.TargetMessageSize = 1 << 20
-	cfg.ConnectionManagerConfig.HighWater = 1000
-	cfg.ConnectionManagerConfig.LowWater = 900
+	cfg.ConnectionManagerConfig.HighWater = 3000
+	cfg.ConnectionManagerConfig.LowWater = 2000
 	cfg.DatastoreDir.Directory = "datastore"
 	cfg.DatastoreDir.Options = levelds.Options{}
 	cfg.Blockstore = ":flatfs:.whypfs/blocks"
@@ -422,7 +422,6 @@ func (p *Node) setupPeer() error {
 		libp2p.BandwidthReporter(bwc),
 		libp2p.DefaultTransports,
 		libp2p.ResourceManager(rcm),
-		libp2p.EnableAutoRelay(),
 	}
 
 	if len(p.Config.AnnounceAddrs) > 0 {
@@ -439,6 +438,7 @@ func (p *Node) setupPeer() error {
 		}))
 	}
 
+	opts = append(opts, Libp2pOptionsExtra...)
 	h, err := libp2p.New(opts...)
 	if err != nil {
 		return err
