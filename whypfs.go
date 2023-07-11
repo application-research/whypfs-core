@@ -150,8 +150,7 @@ func SetConfigDefaults() *Config {
 	cfg.Blockstore = ":flatfs:.whypfs/blocks"
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
 	cfg.ListenAddrs = []string{
-		"/ip4/0.0.0.0/tcp/6745",
-		"/ip4/0.0.0.0/udp/6746/quic",
+		"/ip4/0.0.0.0/tcp/0",
 	}
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 
@@ -437,8 +436,6 @@ func (p *Node) setupPeer() error {
 			return addrs
 		}))
 	}
-
-	opts = append(opts, Libp2pOptionsExtra...)
 	h, err := libp2p.New(opts...)
 	if err != nil {
 		return err
