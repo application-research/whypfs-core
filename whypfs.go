@@ -147,7 +147,7 @@ func SetConfigDefaults() *Config {
 	cfg.ConnectionManagerConfig.LowWater = 900
 	cfg.DatastoreDir.Directory = "datastore"
 	cfg.DatastoreDir.Options = levelds.Options{}
-	cfg.Blockstore = ":flatfs:.whypfs/blocks"
+	cfg.Blockstore = ":flatfs:blocks"
 	cfg.Libp2pKeyFile = filepath.Join("libp2p.key")
 	cfg.ListenAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
 	cfg.AnnounceAddrs = []string{"/ip4/0.0.0.0/tcp/0"}
@@ -642,6 +642,7 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 				case "go-ipfs":
 					sfs = "/repo/flatfs/shard/v1/next-to-last/2"
 				default:
+					fmt.Println("Unrecognized flatfs repo type in params: %s", parts[1])
 					return nil, "", fmt.Errorf("unrecognized flatfs repo type in params: %s", parts[1])
 				}
 			}
