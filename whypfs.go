@@ -624,6 +624,9 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	fmt.Println("spec", spec)
+	fmt.Println("params", params)
+	fmt.Println("path", path)
 
 	switch spec {
 	case "flatfs":
@@ -633,7 +636,7 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 			switch parts[0] {
 			case "type":
 				switch parts[1] {
-				case "estuary":
+				case "whypfs":
 					// default
 					sfs = "/repo/flatfs/shard/v1/next-to-last/3"
 				case "go-ipfs":
