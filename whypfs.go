@@ -141,8 +141,8 @@ func SetConfigDefaults() *Config {
 	cfg.NoBlockstoreCache = false
 	cfg.NoAnnounceContent = false
 	cfg.NoLimiter = false
-	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 20 << 20
-	cfg.BitswapConfig.TargetMessageSize = 2 << 20
+	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 1 << 20
+	cfg.BitswapConfig.TargetMessageSize = 1 << 20
 	cfg.ConnectionManagerConfig.HighWater = 1000
 	cfg.ConnectionManagerConfig.LowWater = 900
 	cfg.DatastoreDir.Directory = "datastore"
@@ -527,7 +527,6 @@ func (p *Node) setupBlockservice() error {
 	bsopts := []bitswap.Option{
 		bitswap.ProvideEnabled(true),
 		bitswap.ProviderSearchDelay(1000 * time.Millisecond),
-		bitswap.EngineTaskWorkerCount(8),
 		bitswap.EngineBlockstoreWorkerCount(600),
 		bitswap.TaskWorkerCount(600),
 		bitswap.MaxOutstandingBytesPerPeer(int(peerwork)),
