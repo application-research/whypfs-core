@@ -525,8 +525,8 @@ func (p *Node) setupBlockservice() error {
 	}
 
 	bsopts := []bitswap.Option{
-		bitswap.ProvideEnabled(true),
-		bitswap.ProviderSearchDelay(1000 * time.Millisecond),
+		//bitswap.ProvideEnabled(true),
+		//bitswap.ProviderSearchDelay(1000 * time.Millisecond),
 		bitswap.EngineBlockstoreWorkerCount(600),
 		bitswap.TaskWorkerCount(600),
 		bitswap.MaxOutstandingBytesPerPeer(int(peerwork)),
