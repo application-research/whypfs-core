@@ -521,10 +521,13 @@ func (p *Node) setupBlockservice() error {
 
 	peerwork := p.Config.BitswapConfig.MaxOutstandingBytesPerPeer
 	if peerwork == 0 {
-		peerwork = 5 << 20
+		peerwork = 1 << 20
 	}
 
 	bsopts := []bitswap.Option{
+		bitswap.ProvideEnabled(true),
+		bitswap.ProviderSearchDelay(1000 * time.Millisecond),
+		bitswap.EngineTaskWorkerCount(8),
 		bitswap.EngineBlockstoreWorkerCount(600),
 		bitswap.TaskWorkerCount(600),
 		bitswap.MaxOutstandingBytesPerPeer(int(peerwork)),
@@ -604,8 +607,8 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 		}
 		bstore = &deleteManyWrap{cbstore}
 	}
-
-	mbs := bsm.New("whypfs-core.repo", bstore)
+	mbs := blockstore.NewIdStore(bstore)
+	//mbs := bsm.New("whypfs-core.repo", bstore)
 
 	var blkst blockstore.Blockstore = mbs
 
