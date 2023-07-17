@@ -211,7 +211,7 @@ func NewNode(nodeParams NewNodeParams) (*Node, error) {
 		nodeParams.Repo = ".whypfs"
 	}
 
-	ch, nlim, err := ulimit.ManageFdLimit(50000)
+	ch, nlim, err := ulimit.ManageFdLimit(100000)
 	if err != nil {
 		return nil, err
 	}
@@ -525,8 +525,8 @@ func (p *Node) setupBlockservice() error {
 	}
 
 	bsopts := []bitswap.Option{
-		//bitswap.ProvideEnabled(true),
-		//bitswap.ProviderSearchDelay(1000 * time.Millisecond),
+		bitswap.ProvideEnabled(true),
+		bitswap.ProviderSearchDelay(1000 * time.Millisecond),
 		bitswap.EngineBlockstoreWorkerCount(600),
 		bitswap.TaskWorkerCount(600),
 		bitswap.MaxOutstandingBytesPerPeer(int(peerwork)),
