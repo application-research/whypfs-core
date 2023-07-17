@@ -555,7 +555,6 @@ func (p *Node) setupReprovider() error {
 
 	var err error
 	if p.System, err = provider.New(p.Datastore,
-		provider.DatastorePrefix(datastore.NewKey("repro")),
 		provider.Online(p.Dht),
 		provider.ReproviderInterval(p.Config.ReprovideInterval),
 		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
