@@ -640,7 +640,6 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 			case "type":
 				switch parts[1] {
 				case "whypfs":
-					// default
 					sfs = "/repo/flatfs/shard/v1/next-to-last/3"
 				case "go-ipfs":
 					sfs = "/repo/flatfs/shard/v1/next-to-last/2"
@@ -650,16 +649,18 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 				}
 			}
 		}
+		fmt.Println("sfs", sfs)
 		sf, err := flatfs.ParseShardFunc(sfs)
 		if err != nil {
 			return nil, "", err
 		}
-
+		fmt.Println("sf", sf)
+		fmt.Println("path", path)
 		ds, err := flatfs.CreateOrOpen(path, sf, false)
 		if err != nil {
 			return nil, "", err
 		}
-
+		fmt.Println("ds", ds)
 		return &deleteManyWrap{blockstore.NewBlockstore(ds, blockstore.NoPrefix())}, path, nil
 
 	default:
