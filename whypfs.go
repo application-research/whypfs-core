@@ -141,8 +141,8 @@ func SetConfigDefaults() *Config {
 	cfg.NoBlockstoreCache = false
 	cfg.NoAnnounceContent = false
 	cfg.NoLimiter = false
-	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 1 << 20
-	cfg.BitswapConfig.TargetMessageSize = 1 << 20
+	cfg.BitswapConfig.MaxOutstandingBytesPerPeer = 20 << 20
+	cfg.BitswapConfig.TargetMessageSize = 2 << 20
 	cfg.ConnectionManagerConfig.HighWater = 1000
 	cfg.ConnectionManagerConfig.LowWater = 900
 	cfg.DatastoreDir.Directory = "datastore"
@@ -563,9 +563,9 @@ func (p *Node) setupReprovider() error {
 		return err
 	}
 
-	if err := p.System.Reprovide(p.Ctx); err != nil {
-		return err
-	}
+	//if err := p.System.Reprovide(p.Ctx); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
@@ -607,8 +607,8 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 		}
 		bstore = &deleteManyWrap{cbstore}
 	}
-	mbs := blockstore.NewIdStore(bstore)
-	//mbs := bsm.New("whypfs-core.repo", bstore)
+	//mbs := blockstore.NewIdStore(bstore)
+	mbs := bsm.New("whypfs-core.repo", bstore)
 
 	var blkst blockstore.Blockstore = mbs
 
