@@ -626,9 +626,6 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	fmt.Println("spec", spec)
-	fmt.Println("params", params)
-	fmt.Println("path", path)
 
 	switch spec {
 	case "flatfs":
@@ -643,12 +640,10 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 				case "go-ipfs":
 					sfs = "/repo/flatfs/shard/v1/next-to-last/2"
 				default:
-					fmt.Println("Unrecognized flatfs repo type in params: %s", parts[1])
 					return nil, "", fmt.Errorf("unrecognized flatfs repo type in params: %s", parts[1])
 				}
 			}
 		}
-		fmt.Println("sfs", sfs)
 		sf, err := flatfs.ParseShardFunc(sfs)
 		if err != nil {
 			return nil, "", err
