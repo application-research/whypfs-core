@@ -211,7 +211,7 @@ func NewNode(nodeParams NewNodeParams) (*Node, error) {
 		nodeParams.Repo = ".whypfs"
 	}
 
-	ch, nlim, err := ulimit.ManageFdLimit(100000)
+	ch, nlim, err := ulimit.ManageFdLimit(50000)
 	if err != nil {
 		return nil, err
 	}
@@ -527,16 +527,11 @@ func (p *Node) setupBlockservice() error {
 	bsopts := []bitswap.Option{
 		bitswap.ProvideEnabled(true),
 		bitswap.ProviderSearchDelay(1000 * time.Millisecond),
-		bitswap.EngineBlockstoreWorkerCount(128),
-		bitswap.TaskWorkerCount(8),
+		bitswap.EngineTaskWorkerCount(8),
+		bitswap.EngineBlockstoreWorkerCount(600),
+		bitswap.TaskWorkerCount(600),
 		bitswap.MaxOutstandingBytesPerPeer(int(peerwork)),
 	}
-
-	//DefaultEngineBlockstoreWorkerCount = 128
-	//DefaultTaskWorkerCount             = 8
-	//DefaultEngineTaskWorkerCount       = 8
-	//DefaultMaxOutstandingBytesPerPeer  = 1 << 20
-	//DefaultProviderSearchDelay         = 1000 * time.Millisecond
 
 	if tms := p.Config.BitswapConfig.TargetMessageSize; tms != 0 {
 		bsopts = append(bsopts, bitswap.WithTargetMessageSize(tms))
@@ -560,16 +555,13 @@ func (p *Node) setupReprovider() error {
 
 	var err error
 	if p.System, err = provider.New(p.Datastore,
+		provider.DatastorePrefix(datastore.NewKey("repro")),
 		provider.Online(p.Dht),
 		provider.ReproviderInterval(p.Config.ReprovideInterval),
 		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
 	); err != nil {
 		return err
 	}
-
-	//if err := p.System.Reprovide(p.Ctx); err != nil {
-	//	return err
-	//}
 
 	return nil
 }
@@ -611,8 +603,8 @@ func loadBlockstore(bscfg string, nocache bool) (blockstore.Blockstore, string, 
 		}
 		bstore = &deleteManyWrap{cbstore}
 	}
-	//mbs := blockstore.NewIdStore(bstore)
-	mbs := bsm.New("whypfs-core.repo", bstore)
+	mbs := blockstore.NewIdStore(bstore)
+	//mbs := bsm.New("whypfs-core.repo", bstore)
 
 	var blkst blockstore.Blockstore = mbs
 
@@ -631,6 +623,9 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
+	fmt.Println("spec", spec)
+	fmt.Println("params", params)
+	fmt.Println("path", path)
 
 	switch spec {
 	case "flatfs":
@@ -641,10 +636,12 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 			case "type":
 				switch parts[1] {
 				case "whypfs":
+					// default
 					sfs = "/repo/flatfs/shard/v1/next-to-last/3"
 				case "go-ipfs":
 					sfs = "/repo/flatfs/shard/v1/next-to-last/2"
 				default:
+					fmt.Println("Unrecognized flatfs repo type in params: %s", parts[1])
 					return nil, "", fmt.Errorf("unrecognized flatfs repo type in params: %s", parts[1])
 				}
 			}
@@ -653,13 +650,12 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 		if err != nil {
 			return nil, "", err
 		}
-		fmt.Println("sf", sf)
-		fmt.Println("path", path)
+
 		ds, err := flatfs.CreateOrOpen(path, sf, false)
 		if err != nil {
 			return nil, "", err
 		}
-		fmt.Println("ds", ds)
+
 		return &deleteManyWrap{blockstore.NewBlockstore(ds, blockstore.NoPrefix())}, path, nil
 
 	default:
