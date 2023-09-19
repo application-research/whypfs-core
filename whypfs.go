@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	nsds "github.com/ipfs/go-datastore/namespace"
+	"github.com/libp2p/go-libp2p"
 	record "github.com/libp2p/go-libp2p-record"
 	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"io"
