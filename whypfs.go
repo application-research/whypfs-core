@@ -94,7 +94,7 @@ type Node struct {
 	Blockstore   blockstore.Blockstore
 	Blockservice blockservice.BlockService
 	Datastore    datastore.Batching
-	System       provider.System
+	Reprovider   provider.System
 	Exchange     exchange.Interface
 	Bitswap      *bitswap.Bitswap
 	FilDht       *dht.IpfsDHT
@@ -549,18 +549,19 @@ func (p *Node) setupBlockservice() error {
 // Setting up the Reprovider.
 func (p *Node) setupReprovider() error {
 	if p.Config.Offline || p.Config.ReprovideInterval < 0 {
-		p.System = provider.NewNoopProvider()
+		p.Reprovider = provider.NewNoopProvider()
 		return nil
 	}
 
 	var err error
-	if p.System, err = provider.New(p.Datastore,
+	if p.Reprovider, err = provider.New(p.Datastore,
 		provider.DatastorePrefix(datastore.NewKey("repro")),
 		provider.Online(p.Dht),
 		provider.ReproviderInterval(p.Config.ReprovideInterval),
 		provider.KeyProvider(provider.NewBlockstoreProvider(p.Blockstore)),
 	); err != nil {
 		return err
+
 	}
 
 	return nil
@@ -705,7 +706,7 @@ func parseBsCfg(bscfg string) (string, []string, string, error) {
 // Closing the Reprovider and Blockservice when the context is done.
 func (p *Node) deferClose() {
 	<-p.Ctx.Done()
-	p.System.Close()
+	p.Reprovider.Close()
 	p.Blockservice.Close()
 }
 
