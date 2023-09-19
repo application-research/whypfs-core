@@ -462,6 +462,7 @@ func (p *Node) setupDatastore() error {
 		dht.BucketSize(20),
 	)
 
+	fmt.Println("host", p.Host)
 	frt, err := fullrt.NewFullRT(p.Host, dht.DefaultPrefix, dhtopts)
 	if err != nil {
 		return xerrors.Errorf("constructing fullrt: %w", err)
