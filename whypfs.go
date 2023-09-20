@@ -462,7 +462,6 @@ func (p *Node) setupDatastore() error {
 		dht.BucketSize(20),
 	)
 
-	fmt.Println("host", p.Host)
 	frt, err := fullrt.NewFullRT(p.Host, dht.DefaultPrefix, dhtopts)
 	if err != nil {
 		return xerrors.Errorf("constructing fullrt: %w", err)
@@ -625,9 +624,6 @@ func constructBlockstore(bscfg string) (DeleteManyBlockstore, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	fmt.Println("spec", spec)
-	fmt.Println("params", params)
-	fmt.Println("path", path)
 
 	switch spec {
 	case "flatfs":
@@ -779,7 +775,6 @@ func (p *Node) GetDirectoryWithCid(ctx context.Context, c cid.Cid) (ufsio.Direct
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("node", node)
 	directory, err := ufsio.NewDirectoryFromNode(p.DAGService, node)
 	if err != nil {
 		return nil, err
